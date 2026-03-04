@@ -1,5 +1,6 @@
 import datetime
 from datetime import timezone
+from xml.parsers.expat import model
 
 from flask import Flask, request, jsonify
 from app.interpreter_core import run_interpretation
@@ -19,7 +20,7 @@ app = Flask(__name__)
 
 #Inicialização dos Observers
 from app.events.event_bus import EventBus
-from app.events.observers import LogObserver, ConsoleAuditObserver, ValidationLoggerObserver
+from app.events.observers import CsvSheetsObserver, LogObserver, ConsoleAuditObserver, ValidationLoggerObserver
 from app.events.validation_service import ValidationService
 
 event_bus = EventBus()
@@ -28,6 +29,7 @@ validation_service = ValidationService()
 # Registrar observers
 event_bus.subscribe("ANALYSIS_COMPLETED", LogObserver())
 event_bus.subscribe("ANALYSIS_COMPLETED", ConsoleAuditObserver())
+event_bus.subscribe("ANALYSIS_COMPLETED", CsvSheetsObserver())
 event_bus.subscribe("VALIDATION_COMPLETED", ValidationLoggerObserver())
 
 #Utils
@@ -65,22 +67,19 @@ return 202
 @app.route("/asynchAnalisis", methods=["POST"])
 def asynchAnalisis():
     try:
-        # -----------------------------
         # 1️ - Request form-data
-        # -----------------------------
         if not request.form and not request.files:
             return jsonify({"error": "form-data required"}), 400
 
         user_id = request.form.get("user_id")
         loc_id = request.form.get("loc_id")
         project_id = request.form.get("project_id")
+        smell_id = request.form.get("id")
 
         if not user_id:
             return jsonify({"error": "user_id required"}), 400
 
-        # -----------------------------
         # 2 -  Request DSL
-        # -----------------------------
         if "smell_dsl" not in request.files:
             return jsonify({"error": "smell_dsl file required"}), 400
 
@@ -129,16 +128,48 @@ def asynchAnalisis():
             "treatments": result.get("treatments", {}),
             "is_smell": bool(rules) and all(rules.values())
         }
+        smells_list = result_public.get("smells", [])
+        
 
+        #Util para payload builder
+        rules = result.get("rules", {})
+        smells_list = result.get("smells", [])
+        treatments_map = result.get("treatments", {})
+        model = result.get("model")
+
+        is_smell_flag = bool(smells_list) and all(rules.values()) if rules else False
+
+        smell_types = []
+        if model and hasattr(model, "smells"):
+            smell_types = [
+                model.smells[name].extends or ""
+                for name in smells_list
+                if name in model.smells
+            ]
+        treatments_text = " | ".join(
+            treatments_map.get(smell, "")
+            for smell in smells_list
+            if treatments_map.get(smell)
+        )
         # 7 - Salva log completo (com model)
         event_payload = {
-            "cod_ctx": cod_ctx,
+            "id": smell_id if smell_id else cod_ctx,
             "timestamp_utc": timestamp,
+            "time_zone": "UTC",
             "user_id": user_id,
-            "loc_id": loc_id,
-            "project_id": project_id,
-            "env": env_raw,
-            "result": result_public
+            "org_id": request.form.get("org_id") or "",
+            "loc_id": loc_id or "",
+            "project_id": project_id or "",
+            "type": ", ".join(smells_list),                
+            "smell_type": ", ".join(smell_types),          
+            "is_smell": "YES" if is_smell_flag else "NO",  
+            "rule": rules,
+            "file_path": request.form.get("file_path") or "",
+            "language": request.form.get("language") or "",
+            "branch": request.form.get("branch") or "",
+            "commit_sha": request.form.get("commit_sha") or "",
+            "ctx_id": cod_ctx,
+            "treatment": treatments_text
         }
 
         log_file = os.path.join(LOG_DIR, f"{cod_ctx}.txt")
