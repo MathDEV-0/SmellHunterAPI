@@ -1,0 +1,11 @@
+smelltype DesignSmell;
+smelltype ImplementationSmell;
+
+smell GodClass extends DesignSmell {
+    feature ATFD with threshold 4, 10;
+    feature TCC with threshold 3, 5;
+    symptom "High coupling";
+    treatment "Refactor into smaller classes";
+}
+
+rule GodClassRule when (GodClass.ATFD > GodClass.TCC) then "Flag";

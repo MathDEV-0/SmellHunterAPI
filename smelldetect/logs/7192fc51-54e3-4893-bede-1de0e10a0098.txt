@@ -1,0 +1,27 @@
+{
+    "cod_ctx": "7192fc51-54e3-4893-bede-1de0e10a0098",
+    "timestamp_utc": "2026-03-03T17:34:47.063292+00:00",
+    "user_id": "1",
+    "loc_id": "1",
+    "project_id": "1",
+    "env": {
+        "GodClass.ATFD": 12,
+        "GodClass.ATFD-LIMIT": 10,
+        "GodClass.TCC": 4,
+        "GodClass.TCC-LIMIT": 5,
+        "GodClass.TO": 1
+    },
+    "result": {
+        "smells": [
+            "GodClass"
+        ],
+        "rules": {
+            "GodClassRule": true
+        },
+        "interpreted": true,
+        "treatments": {
+            "GodClass": "Refactor into smaller classes"
+        },
+        "is_smell": true
+    }
+}

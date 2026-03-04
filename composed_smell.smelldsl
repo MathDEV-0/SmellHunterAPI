@@ -1,0 +1,19 @@
+smelltype DesignSmell;
+        smelltype ImplementationSmell;
+
+        // declaração de smells
+        smell LongMethod extends ImplementationSmell {
+            feature LOC is Ratio with threshold 100, 200;
+            feature CYCLO is Interval with threshold 10, 20;
+            symptom "Methods too long";
+            treatment "Refactor by Extract Method";
+        }
+
+        smell GodClass extends DesignSmell {
+            feature ATFD with threshold 4, 10;
+            feature TCC with threshold 3, 5;
+        }
+
+        // regras (comparando valores de features no ambiente)
+        rule R1 when (LongMethod.LOC > LongMethod.LOC-LIMIT) AND (GodClass.ATFD > GodClass.ATFD-LIMIT) then "Flag";
+        rule R2 when (GodClass.ATFD > GodClass.ATFD-LIMIT) AND (GodClass.TCC > GodClass.TCC-LIMIT) then "Flag";

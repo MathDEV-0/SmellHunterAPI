@@ -1,0 +1,11 @@
+{
+  "LongMethod.LOC": 300,
+  "LongMethod.LOC-LIMIT": 100,
+  "LongMethod.CYCLO": 200,
+  "LongMethod.CYCLO-LIMIT": 150,
+  "GodClass.ATFD": 50,
+  "GodClass.ATFD-LIMIT": 10,
+  "GodClass.TCC": 301,
+  "GodClass.TCC-LIMIT": 300,
+  "GodClass.TO": 500
+}
