@@ -153,7 +153,7 @@ def asynchAnalisis():
         )
         # 7 - Salva log completo (com model)
         event_payload = {
-            "id": smell_id if smell_id else cod_ctx,
+            "id": smell_id if smell_id else str(uuid.uuid4()),
             "timestamp_utc": timestamp,
             "time_zone": "UTC",
             "user_id": user_id,
