@@ -1,0 +1,8 @@
+# Environment files
+.env
+
+# Google credentials
+service_account.json
+
+# Config secrets
+smelldetect\app\configs\service_account.json
