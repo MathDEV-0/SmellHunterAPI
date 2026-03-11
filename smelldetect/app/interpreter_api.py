@@ -12,7 +12,7 @@ import uuid
 import re
 import traceback
 from app.events.event_types import EventTypes
-from app.events.observers import ValidationObserver
+from app.events.observers import StatusWorker, ValidationObserver
 from app.events.event_types import EventTypes
 
 # Configs for sheets persistence
@@ -43,6 +43,11 @@ repository = SheetsRepository()
 persistence_worker = PersistenceWorker(repository, event_bus)
 sheets_persistence_observer = SheetsPersistenceObserver(repository)
 
+
+#Status
+status_worker = StatusWorker()
+
+event_bus.subscribe(EventTypes.ANALYSIS_COMPLETED, status_worker)
 
 
 # Register observers
@@ -86,6 +91,29 @@ def normalize_env(env_raw: dict) -> dict:
 
     return env
 
+def load_metrics(file):
+
+    filename = file.filename.lower()
+
+    if filename.endswith(".json"):
+        return json.load(file)
+
+    elif filename.endswith(".csv"):
+        decoded = file.read().decode("utf-8")
+        reader = csv.DictReader(io.StringIO(decoded))
+
+        metrics = {}
+
+        for row in reader:
+            metric = row["Metrica"].strip()
+            value = float(row["Valor"])
+            metrics[metric] = value
+
+        return metrics
+
+    else:
+        raise ValueError("Unsupported metrics format. Use CSV or JSON.")
+    
 
 '''
 receive_request()
@@ -105,25 +133,43 @@ publish("ANALYSIS_COMPLETED")
 
 return 202
 '''
-@app.route("/asynchAnalisis", methods=["POST"])
+@app.route("/analyze", methods=["POST"])
 def asynchAnalisis():
 
     try:
+        if request.is_json:
+            data = request.get_json()
 
-        if not request.form and not request.files:
-            return jsonify({"error": "form-data required"}), 400
+            user_id = data.get("user_id")
 
-        user_id = request.form.get("user_id")
+            if not user_id:
+                user_id = ""
+            smell_dsl = data.get("smell_dsl")
+            env_raw = data.get("metrics")
+        else:
+            if not request.form and not request.files:
+                return jsonify({"error": "form-data required"}), 400
+
+            user_id = request.form.get("user_id")
+
+            if not user_id:
+                return jsonify({"error": "user_id required"}), 400
+
+            smell_dsl = request.files["smell_dsl"].read().decode("utf-8")
+            metrics_file = request.files["metrics"]
+            env_raw = load_metrics(metrics_file)
 
         if not user_id:
             return jsonify({"error": "user_id required"}), 400
-
-        smell_dsl = request.files["smell_dsl"].read().decode("utf-8")
-        env_raw = json.load(request.files["metrics"])
-
+        
         cod_ctx = str(uuid.uuid4())
-        smell_id = request.form.get("id") or str(uuid.uuid4())
-        org_id = request.form.get("org_id")
+        smell_id = data.get("request_data", {}).get("id")
+
+        if smell_id is not None:
+            smell_id = int(smell_id)
+        else:
+            smell_id = str(uuid.uuid4())
+        org_id = request.form.get("org_id") or data.get("request_data", {}).get("org_id", "")
 
         timestamp = datetime.datetime.now(timezone.utc).isoformat()
 
@@ -134,7 +180,7 @@ def asynchAnalisis():
             "user_id": user_id,
             "metrics": env_raw,
             "smell_dsl": smell_dsl,
-            "request_data": dict(request.form)
+            "request_data": data.get("request_data", {})
         }
 
         event_bus.publish(
@@ -151,7 +197,19 @@ def asynchAnalisis():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-    
+
+@app.route("/status/<ctx_id>", methods=["GET"])
+def status(ctx_id):
+
+    result = status_worker.get(ctx_id)
+
+    if not result:
+        return jsonify({
+            "status": "processing"
+        }), 200
+
+    return jsonify(result), 200
+
 def main():
     app.run(host="0.0.0.0", port=5000, debug=True)
 

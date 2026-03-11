@@ -1,27 +1,15 @@
 {
-    "ctx_id": "04847517-f532-428a-80ea-10255e78d0e6",
-    "id": "b2f58e52-1f85-4819-bc20-d5774847b2ab",
-    "timestamp_utc": "2026-03-06T17:35:01.339603+00:00",
-    "user_id": "1",
+    "ctx_id": "2dbc66d7-93b7-4d12-908e-4106c44a8ee1",
+    "id": "b626846f-6861-4e9b-b879-e7d16ab0dd3c",
+    "timestamp_utc": "2026-03-11T16:06:32.007379+00:00",
+    "user_id": 1.0,
     "metrics": {
-        "GodClass.ATFD": 12,
-        "GodClass.ATFD-LIMIT": 10,
-        "GodClass.TCC": 4,
-        "GodClass.TCC-LIMIT": 5,
-        "GodClass.TO": 1
+        "GodClass.TCC": 8.0,
+        "GodClass.TO": 1.0,
+        "GodClass.ATFD": 12.0
     },
     "smell_dsl": "smelltype DesignSmell;\r\nsmelltype ImplementationSmell;\r\n\r\nsmell GodClass extends DesignSmell {\r\n    feature ATFD with threshold 4, 10;\r\n    feature TCC with threshold 3, 5;\r\n    symptom \"High coupling\";\r\n    treatment \"Refactor into smaller classes\";\r\n}\r\n\r\nrule GodClassRule when (GodClass.ATFD > GodClass.TCC) then \"Flag\";\r\n",
-    "request_data": {
-        "user_id": "1",
-        "loc_id": "1",
-        "project_id": "1",
-        "org_id": "3",
-        "branch": "testBranch",
-        "commit_sha": "f7e2d8c22",
-        "language": "C++",
-        "file_path": "src/app/app/Caclulator.cpp",
-        "id": ""
-    },
+    "request_data": {},
     "validation": {
         "valid": true,
         "errors": [],

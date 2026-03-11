@@ -1,26 +1,38 @@
 id,timestamp_utc,time_zone,user_id,org_id,loc_id,project_id,type,smell_type,is_smell,rule,file_path,language,branch,commit_sha,ctx_id,treatment
-38af8667-b232-4bf0-8636-1256618bc4da,2026-03-06T16:20:06.037492+00:00,UTC,1,,1,1,GodClass,,YES,"{""GodClassRule"": true}",,,,,eddc2574-9065-49b5-91cf-223332aa77eb,Refactor into smaller classes
-3af2952f-c8a7-422c-9e69-12c64e14ae0a,2026-03-06T16:33:38.051456+00:00,UTC,1,,1,1,GodClass,,YES,"{""GodClassRule"": true}",,,,,9f964301-2a11-4964-bf94-34a55bc3f729,Refactor into smaller classes
-63e3b929-dd1d-49f7-87af-e741b60ca434,2026-03-06T16:33:39.499867+00:00,UTC,1,,1,1,GodClass,,YES,"{""GodClassRule"": true}",,,,,c95d1f71-9a2e-4294-984f-1d18633701b3,Refactor into smaller classes
-2513ba70-9503-4942-9fa6-ce00a07828ef,2026-03-06T16:36:20.240187+00:00,UTC,1,,1,1,GodClass,,YES,"{""GodClassRule"": true}",,,,,9fc48e4e-ebbe-4dc7-878c-d26e9a7ec64a,Refactor into smaller classes
-bf7658d1-06f4-4088-b9a2-b7dd210b2544,2026-03-06T16:36:22.661248+00:00,UTC,1,,1,1,GodClass,,YES,"{""GodClassRule"": true}",,,,,0ac961f5-7e8b-49d1-8090-16bf12bed5fb,Refactor into smaller classes
-dc728b8f-4c7a-4f04-bb8f-1a10cbd460a6,2026-03-06T16:36:59.610178+00:00,UTC,1,,1,1,GodClass,,YES,"{""GodClassRule"": true}",,,,,bb04c552-bb5f-4ca4-a356-e7d424feacd6,Refactor into smaller classes
-61b08ff0-4e09-4995-ba01-b232e39e42d1,2026-03-06T16:59:43.060691+00:00,UTC,1,,1,1,GodClass,,YES,"{""GodClassRule"": true}",,,,,134cdef2-7cd5-41d5-b19d-6841ae4989a5,Refactor into smaller classes
-593507e8-49e6-4c1f-be39-44829fb987a7,2026-03-06T17:02:19.654851+00:00,UTC,1,,1,1,GodClass,,YES,"{""GodClassRule"": true}",,,,,657ca265-3e2b-4a6a-bbda-9a5b2c3b8e31,Refactor into smaller classes
-9eeb3169-8f99-4783-a95f-bf612228d2e4,2026-03-06T17:04:25.479734+00:00,UTC,1,1,1,1,GodClass,,YES,"{""GodClassRule"": true}",,,,,68b551bc-037d-4d8f-8298-5d3313702bc6,Refactor into smaller classes
-f222326c-00d3-41ae-8b68-561ed0b56365,2026-03-06T17:26:11.454920+00:00,UTC,1,3,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,143f95cb-ad91-4430-8007-1a0f2e3ef770,Refactor into smaller classes
-f6347c0c-e1ae-46f6-af57-6f5dc2fbfca4,2026-03-06T17:05:45.350319+00:00,UTC,1,1,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,56a16dd1-43c8-45cf-99ec-c96b03cd1adc,Refactor into smaller classes
-1,2026-03-06T17:15:45.106791+00:00,UTC,1,1,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,64d3af89-e4c8-4dcb-8927-b9f3d68be2d1,Refactor into smaller classes
-323231d8-af6b-45a9-b368-f75ab50f8e3b,2026-03-06T17:06:51.316451+00:00,UTC,1,1,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,1b741691-eb94-4e39-b62f-ef0adec34f10,Refactor into smaller classes
-8ec08aa6-f151-417e-b48f-fbdebdca26b6,2026-03-06T17:11:14.456512+00:00,,1,,,,,,,,,,,,e07c3315-5eb4-4976-b854-c6fd2943f5b2,
-243b9b14-ebf5-4be8-835b-76aa7397d068,2026-03-06T17:13:53.329219+00:00,UTC,1,1,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,9d502110-512d-4456-a729-ae574845535e,Refactor into smaller classes
-07a88606-d7f3-405c-b82b-965e95a33831,2026-03-06T17:12:30.517078+00:00,,1,,,,,,,,,,,,3c9e4bbe-cd63-4f6d-9a08-21d4b55aab21,
-84830db0-e928-4634-8f74-c0f6c7854bf2,2026-03-06T17:15:07.922451+00:00,UTC,1,1,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,f90a1be3-045d-436d-b8e3-123e76acede4,Refactor into smaller classes
-1,2026-03-06T17:15:45.106791+00:00,UTC,1,1,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,64d3af89-e4c8-4dcb-8927-b9f3d68be2d1,Refactor into smaller classes
-1,2026-03-06T17:15:45.106791+00:00,UTC,1,1,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,64d3af89-e4c8-4dcb-8927-b9f3d68be2d1,Refactor into smaller classes
-f222326c-00d3-41ae-8b68-561ed0b56365,2026-03-06T17:26:11.454920+00:00,UTC,1,3,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,143f95cb-ad91-4430-8007-1a0f2e3ef770,Refactor into smaller classes
-f222326c-00d3-41ae-8b68-561ed0b56365,2026-03-06T17:26:11.454920+00:00,UTC,1,3,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,143f95cb-ad91-4430-8007-1a0f2e3ef770,Refactor into smaller classes
-f222326c-00d3-41ae-8b68-561ed0b56365,2026-03-06T17:26:11.454920+00:00,UTC,1,3,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,143f95cb-ad91-4430-8007-1a0f2e3ef770,Refactor into smaller classes
-f222326c-00d3-41ae-8b68-561ed0b56365,2026-03-06T17:26:11.454920+00:00,UTC,1,3,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,143f95cb-ad91-4430-8007-1a0f2e3ef770,Refactor into smaller classes
-f222326c-00d3-41ae-8b68-561ed0b56365,2026-03-06T17:26:11.454920+00:00,UTC,1,3,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,143f95cb-ad91-4430-8007-1a0f2e3ef770,Refactor into smaller classes
-b2f58e52-1f85-4819-bc20-d5774847b2ab,2026-03-06T17:35:01.339603+00:00,UTC,1,3,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,04847517-f532-428a-80ea-10255e78d0e6,Refactor into smaller classes
+cea590c6-d5df-4393-977a-ed4a2f0fe068,2026-03-11T15:58:58.139251+00:00,UTC,1,4,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,a7128215-52ee-4533-86e0-05f4bc6d6db2,Refactor into smaller classes
+1ba831ff-1f49-4eb6-bab7-aaa99d570bd3,2026-03-11T15:12:02.454157+00:00,UTC,eclipse-plugin,,,,GodClass,,NO,"{""GodClassRule"": false}",,,,,711601ea-aa30-4283-892c-26d95cb49748,Refactor into smaller classes
+b8575640-53d2-445e-af40-b3405dc1d516,2026-03-11T15:16:01.972245+00:00,UTC,eclipse-plugin,,,,GodClass,,NO,"{""GodClassRule"": false}",,,,,a3b60cca-91a7-469c-a7a4-5fb05641c461,Refactor into smaller classes
+cea590c6-d5df-4393-977a-ed4a2f0fe068,2026-03-11T15:58:58.139251+00:00,UTC,1,4,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,a7128215-52ee-4533-86e0-05f4bc6d6db2,Refactor into smaller classes
+7913a691-61e8-4056-800c-2a5d0f287d8b,2026-03-11T15:32:34.147582+00:00,UTC,eclipse-plugin,,,,GodClass,,YES,"{""GodClassRule"": true}",,,,,ff273eef-0067-4611-a323-67b9260c0588,Refactor into smaller classes
+cea590c6-d5df-4393-977a-ed4a2f0fe068,2026-03-11T15:58:58.139251+00:00,UTC,1,4,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,a7128215-52ee-4533-86e0-05f4bc6d6db2,Refactor into smaller classes
+0b7dc1aa-bc1d-43a7-8f5a-cbacb5e50ced,2026-03-11T15:59:34.491757+00:00,UTC,1,4,1,1,GodClass,,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,b76262ff-e265-41ed-b8d2-3764611c1258,Refactor into smaller classes
+67371949-b934-4df6-818b-5be16fc6a9aa,2026-03-11T16:01:09.264032+00:00,UTC,1.0,,,,GodClass,,YES,"{""GodClassRule"": true}",,,,,ea67b43a-8bcf-41fc-8948-b8a50eb4b64a,Refactor into smaller classes
+a2c70b3a-468c-4a33-aa1c-93ab749593aa,2026-03-11T16:04:58.571220+00:00,UTC,1.0,,,,GodClass,,YES,"{""GodClassRule"": true}",,,,,5ba0548a-0b38-4f59-abc4-31ff5eb77d62,Refactor into smaller classes
+b626846f-6861-4e9b-b879-e7d16ab0dd3c,2026-03-11T16:06:32.007379+00:00,UTC,1.0,,,,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",,,,,2dbc66d7-93b7-4d12-908e-4106c44a8ee1,Refactor into smaller classes
+f54f35de-7bed-4c63-93f7-55210c49e750,2026-03-11T16:10:17.540833+00:00,UTC,1,4,1,1,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.cpp,C++,testBranch,f7e2d8c22,b6dd2d7a-5e16-4706-82d5-549484c6461e,Refactor into smaller classes
+9a811796-6b31-46d3-bc6a-2e810745ae21,2026-03-11T16:12:41.547322+00:00,UTC,1.0,,,,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",,,,,06c88007-273e-4fe8-aef9-8beaba7e2f5e,Refactor into smaller classes
+8bceb9d6-32be-44ec-a9ff-b621c2b39556,2026-03-11T16:14:50.840110+00:00,UTC,1.0,,,,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",,,,,4b8f1e0c-a238-4b14-bc46-b6907ad8d049,Refactor into smaller classes
+843ee23a-c57a-406e-ada2-a296e99bff22,2026-03-11T16:17:16.066340+00:00,UTC,1.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,43ec98bc-1cfc-433f-8d1f-ac73f767d2d3,Refactor into smaller classes
+c40ce2e3-af25-43fe-ab66-5db173d81d94,2026-03-11T16:20:45.256835+00:00,UTC,1.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,b738322f-30f8-48c5-b7d7-140507b85162,Refactor into smaller classes
+20d0bff5-fe68-4a7f-93be-2fb46927cecc,2026-03-11T16:21:07.257207+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,6ae91e72-e417-4e6b-8e58-b3afe20cff76,Refactor into smaller classes
+7731a4a7-4dc2-4d69-ab8b-3aec0a4bfbe1,2026-03-11T16:21:34.013618+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,1c6c4124-aefc-4934-a0f0-2d7c401feb0d,Refactor into smaller classes
+2.0,2026-03-11T16:23:30.801051+00:00,,3.0,,,,,,,,,,,,499c17ec-d924-421b-9dfe-45069f026d29,
+2.0,2026-03-11T16:23:30.801051+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,499c17ec-d924-421b-9dfe-45069f026d29,Refactor into smaller classes
+2,2026-03-11T16:25:11.478000+00:00,,3.0,,,,,,,,,,,,bb6acd85-267c-461d-8229-ae50213cdc18,
+2,2026-03-11T16:25:11.478000+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,bb6acd85-267c-461d-8229-ae50213cdc18,Refactor into smaller classes
+2,2026-03-11T16:25:27.353357+00:00,,3.0,,,,,,,,,,,,7298b1b8-8757-402d-9871-07c09d7b2f79,
+2,2026-03-11T16:25:27.353357+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,7298b1b8-8757-402d-9871-07c09d7b2f79,Refactor into smaller classes
+2,2026-03-11T16:28:07.344905+00:00,,3.0,,,,,,,,,,,,aca3995d-d8c3-4136-9e20-33de3d30138f,
+2,2026-03-11T16:28:07.344905+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,aca3995d-d8c3-4136-9e20-33de3d30138f,Refactor into smaller classes
+2,2026-03-11T16:28:19.295290+00:00,,3.0,,,,,,,,,,,,6e1b2588-20a8-4269-afd2-a77a51221f84,
+2,2026-03-11T16:28:19.295290+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,6e1b2588-20a8-4269-afd2-a77a51221f84,Refactor into smaller classes
+2,2026-03-11T16:28:30.676605+00:00,,3.0,,,,,,,,,,,,6e844c87-4b53-4ca0-bf9a-9399debb7803,
+2,2026-03-11T16:28:30.676605+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,6e844c87-4b53-4ca0-bf9a-9399debb7803,Refactor into smaller classes
+2,2026-03-11T16:31:29.746924+00:00,,3.0,,,,,,,,,,,,038f6fb8-01e7-4f5b-a956-3353e3ebfb22,
+2,2026-03-11T16:31:29.746924+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,038f6fb8-01e7-4f5b-a956-3353e3ebfb22,Refactor into smaller classes
+2,2026-03-11T16:34:09.732331+00:00,,3.0,,,,,,,,,,,,6f3f113e-9c70-4d18-88dd-d0a5e14cd15b,
+2,2026-03-11T16:34:09.732331+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,main,f7e2d8c22,6f3f113e-9c70-4d18-88dd-d0a5e14cd15b,Refactor into smaller classes
+2,2026-03-11T16:34:29.167905+00:00,,3.0,,,,,,,,,,,,b6d71b1f-9295-40de-8c09-725ee00d5ad4,
+2,2026-03-11T16:34:29.167905+00:00,UTC,3.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,test,f7e2d8c22,b6d71b1f-9295-40de-8c09-725ee00d5ad4,Refactor into smaller classes
+2,2026-03-11T16:34:43.794335+00:00,,2.0,,,,,,,,,,,,fe7a3e73-23aa-4cce-ae46-345a5d694b63,
+2,2026-03-11T16:34:43.794335+00:00,UTC,2.0,1.0,1.0,1.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",src/app/app/Caclulator.java,java,test,f7e2d8c22,fe7a3e73-23aa-4cce-ae46-345a5d694b63,Refactor into smaller classes

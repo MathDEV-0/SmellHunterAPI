@@ -59,6 +59,8 @@ class SheetsRepository:
 
     def _load_id_cache(self):
 
+        self.id_cache = {} 
+
         result = self.client.spreadsheets().values().get(
             spreadsheetId=self.spreadsheet_id,
             range=f"{self.sheet_name}!A:A"
@@ -67,9 +69,8 @@ class SheetsRepository:
         values = result.get("values", [])
 
         for idx, row in enumerate(values, start=1):
-
             if row:
-                self.id_cache[row[0]] = idx
+                self.id_cache[str(row[0])] = idx
 
         print(f"[SHEETS] cache loaded {len(self.id_cache)} smells")
     # -----------------------------
@@ -154,11 +155,20 @@ class SheetsRepository:
     
     def upsert_record(self, smell_id: str, row_data: list):
 
+        smell_id = str(smell_id)
+
         row_index = self.id_cache.get(smell_id)
+
+        # se não estiver no cache, procura na planilha
+        if not row_index:
+            row_index = self.find_smell_row(smell_id)
+
+            if row_index:
+                self.id_cache[smell_id] = row_index
 
         if row_index:
 
-            print(f"[SHEETS] updating smell_id={smell_id}")
+            print(f"[SHEETS] updating smell_id={smell_id} row={row_index}")
 
             self.client.spreadsheets().values().update(
                 spreadsheetId=self.spreadsheet_id,
@@ -178,9 +188,9 @@ class SheetsRepository:
                 body={"values": [row_data]}
             ).execute()
 
-            # atualizar cache
-            self.id_cache[smell_id] = len(self.id_cache) + 1
-
+            # recarrega cache real da planilha
+            self._load_id_cache()
+        
     def append_context_event(self, row):
 
         body = {

@@ -27,10 +27,12 @@ class ValidationService:
                 
         declared_metrics, used_metrics = self.extractor.extract(smell_dsl)
 
+        env = self._normalize_metrics(env_raw, used_metrics)
+
         missing = []
 
         for metric in used_metrics:
-            if metric not in env_raw:
+            if metric not in env:
                 missing.append(metric)
 
         if missing:
@@ -43,3 +45,30 @@ class ValidationService:
             "errors": errors,
             "suggestions": suggestions
         }
+    
+    def _normalize_metrics(self, env_raw: dict, used_metrics: set):
+
+        normalized = {}
+
+        for key, value in env_raw.items():
+
+            key = key.strip()
+
+            # caso já venha no formato correto
+            if "." in key:
+                normalized[key] = value
+                continue
+
+            # tenta casar com métricas usadas no DSL
+            matched = False
+
+            for used in used_metrics:
+                if used.endswith("." + key):
+                    normalized[used] = value
+                    matched = True
+                    break
+
+            if not matched:
+                normalized[key] = value
+
+        return normalized

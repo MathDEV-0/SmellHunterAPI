@@ -1,6 +1,7 @@
 import csv
 import os
 import json
+import re
 from app.events.event_types import EventTypes
 from app.interpreter_core import run_interpretation
 
@@ -111,6 +112,8 @@ class ValidationObserver:
 
     def notify(self, event_type, data):
 
+        print("[VALIDATOR] received:", event_type)
+
         if event_type != EventTypes.METRICS_VALIDATION_REQUESTED:
             return
 
@@ -120,14 +123,14 @@ class ValidationObserver:
         result = self.validation_service.validate(smell_dsl, metrics)
 
         if result["valid"]:
-
+            print(f"[VALIDATOR] ctx={data['ctx_id']} validation successful")
             self.event_bus.publish(
                 EventTypes.VALIDATION_COMPLETED,
                 {**data, "validation": result}
             )
 
         else:
-
+            print(f"[VALIDATOR] ctx={data['ctx_id']} validation failed: {result.get('errors')}")
             self.event_bus.publish(
                 EventTypes.VALIDATION_FAILED,
                 {**data, "validation": result}
@@ -138,6 +141,8 @@ class InterpreterWorker:
         self.event_bus = event_bus
 
     def notify(self, event_type, data):
+
+        print("[INTERPRETER] received:", event_type)
 
         if event_type != EventTypes.VALIDATION_COMPLETED:
             return
@@ -196,6 +201,9 @@ class PersistenceWorker:
 
         record_id = self.repository.save_or_update(payload)
 
+        print("DATA RECEIVED BY PERSISTENCE:")
+        import json
+        print(json.dumps(data, indent=2))
         self.event_bus.publish(
             EventTypes.PERSISTENCE_COMPLETED,
             {
@@ -206,12 +214,17 @@ class PersistenceWorker:
         )
 
     def _build_payload(self, data, analysis):
+        import re
 
         smells = analysis.get("smells", [])
         rules = analysis.get("rules", {})
         treatments = analysis.get("treatments", {})
 
-        smell_types = data.get("request_data", {}).get("smell_type", "")
+        # corrigido aqui
+        dsl = data.get("smell_dsl", "")
+
+        match = re.search(r"extends\s+(\w+)", dsl, re.IGNORECASE)
+        smell_types = match.group(1) if match else ""
 
         return {
             "id": data["id"],
@@ -221,17 +234,21 @@ class PersistenceWorker:
             "org_id": data["request_data"].get("org_id", ""),
             "loc_id": data["request_data"].get("loc_id", ""),
             "project_id": data["request_data"].get("project_id", ""),
+
             "type": ", ".join(smells),
             "smell_type": smell_types,
+
             "is_smell": "YES" if rules and all(rules.values()) else "NO",
             "rule": rules,
+
             "file_path": data["request_data"].get("file_path", ""),
             "language": data["request_data"].get("language", ""),
             "branch": data["request_data"].get("branch", ""),
             "commit_sha": data["request_data"].get("commit_sha", ""),
+
             "ctx_id": data["ctx_id"],
             "treatment": " | ".join(treatments.values())
-        }
+    }
     
 class SheetsPersistenceObserver:
 
@@ -285,3 +302,36 @@ class SheetsPersistenceObserver:
         ]
 
         self.repo.append_context_event(context_row)
+
+class StatusWorker:
+
+    def __init__(self):
+        self.results = {}
+
+    def notify(self, event_type, data):
+
+        print("[STATUS] received:", event_type)
+
+        if event_type != EventTypes.ANALYSIS_COMPLETED:
+            return
+
+        ctx = data["ctx_id"]
+
+        self.results[ctx] = {
+            "status": "ok",
+            "history": [
+                {
+                    "cod_ctx": ctx,
+                    "status": "INTERPRETED",
+                    "details": json.dumps({
+                        "result": {
+                            "is_smell": len(data["analysis"]["smells"]) > 0,
+                            "smells_detected": data["analysis"]["smells"]
+                        }
+                    })
+                }
+            ]
+        }
+
+    def get(self, ctx):
+        return self.results.get(ctx)
