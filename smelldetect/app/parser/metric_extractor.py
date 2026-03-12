@@ -20,7 +20,17 @@ class MetricVisitor(Visitor):
 
     def ref(self, tree):
         smell = tree.children[0].value
-        feature = tree.children[2].value
+        #  print(f"[DEBUG] ref tree: {tree}")
+        #  print(f"[DEBUG] children: {tree.children}")
+        
+        feature_parts = []
+        for child in tree.children[2:]: 
+            # print(f"[DEBUG] child: {child}, type: {type(child)}")
+            if hasattr(child, 'value'):
+                feature_parts.append(child.value)
+        
+        feature = ".".join(feature_parts) 
+        # print(f"[DEBUG] extracted feature: '{feature}'")
         self.rule_refs.add(f"{smell}.{feature}")
 
 

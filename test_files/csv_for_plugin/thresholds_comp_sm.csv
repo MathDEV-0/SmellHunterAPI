@@ -1,0 +1,5 @@
+Metrica,Valor
+GodClass.ATFD-LIMIT,10
+GodClass.TCC-LIMIT,5
+LongMethod.LOC-LIMIT,100
+LongMethod.CYCLO-LIMIT,10

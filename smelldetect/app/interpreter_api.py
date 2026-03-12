@@ -22,7 +22,7 @@ os.makedirs(LOG_DIR, exist_ok=True)
 
 app = Flask(__name__)
 
-#Inicialização dos Observers
+# Initialize event bus and observers
 from app.events.event_bus import EventBus
 from app.events.observers import CsvSheetsObserver, LogObserver, ConsoleAuditObserver, ValidationLoggerObserver
 from app.events.validation_service import ValidationService
@@ -115,6 +115,23 @@ def load_metrics(file):
         raise ValueError("Unsupported metrics format. Use CSV or JSON.")
     
 
+def safe_json_parse(value, default=None):
+    """
+    Safely parse a value that could be a JSON string, dict, or other type
+    """
+    if default is None:
+        default = {} if isinstance(value, (dict, str)) else value
+    
+    if isinstance(value, dict):
+        return value
+    elif isinstance(value, str):
+        try:
+            return json.loads(value)
+        except:
+            return default
+    else:
+        return default
+    
 '''
 receive_request()
 
@@ -140,36 +157,38 @@ def asynchAnalisis():
         if request.is_json:
             data = request.get_json()
 
-            user_id = data.get("user_id")
-
-            if not user_id:
-                user_id = ""
+            user_id = data.get("user_id", "")
             smell_dsl = data.get("smell_dsl")
-            env_raw = data.get("metrics")
+            metrics = data.get("metrics", {})
+            thresholds = data.get("thresholds", {})
+            
+            # print(f"[DEBUG] Received metrics keys: {list(metrics.keys())}")
+            # print(f"[DEBUG] Received thresholds keys: {list(thresholds.keys())}")
+            
         else:
             if not request.form and not request.files:
                 return jsonify({"error": "form-data required"}), 400
 
-            user_id = request.form.get("user_id")
-
+            user_id = request.form.get("user_id", "")
             if not user_id:
                 return jsonify({"error": "user_id required"}), 400
 
             smell_dsl = request.files["smell_dsl"].read().decode("utf-8")
             metrics_file = request.files["metrics"]
-            env_raw = load_metrics(metrics_file)
+            metrics = load_metrics(metrics_file)
+            
+
+            thresholds = {}
+            if "thresholds" in request.files:
+                thresholds_file = request.files["thresholds"]
+                thresholds = load_metrics(thresholds_file)
+                # print(f"[DEBUG] Loaded thresholds keys: {list(thresholds.keys())}")
 
         if not user_id:
             return jsonify({"error": "user_id required"}), 400
         
         cod_ctx = str(uuid.uuid4())
-        smell_id = data.get("request_data", {}).get("id")
-
-        if smell_id is not None:
-            smell_id = int(smell_id)
-        else:
-            smell_id = str(uuid.uuid4())
-        org_id = request.form.get("org_id") or data.get("request_data", {}).get("org_id", "")
+        smell_id = data.get("request_data", {}).get("id", str(uuid.uuid4()))
 
         timestamp = datetime.datetime.now(timezone.utc).isoformat()
 
@@ -178,10 +197,14 @@ def asynchAnalisis():
             "id": smell_id,
             "timestamp_utc": timestamp,
             "user_id": user_id,
-            "metrics": env_raw,
+            "metrics": metrics,
+            "thresholds": thresholds, 
             "smell_dsl": smell_dsl,
             "request_data": data.get("request_data", {})
         }
+
+        # print(f"[DEBUG] Event payload keys: {list(event_payload.keys())}")
+        # print(f"[DEBUG] Thresholds in payload: {list(thresholds.keys())}")
 
         event_bus.publish(
             EventTypes.METRICS_VALIDATION_REQUESTED,
@@ -210,6 +233,53 @@ def status(ctx_id):
 
     return jsonify(result), 200
 
+@app.route("/smells/<smell_id>", methods=["GET"])
+def get_smell_by_id(smell_id):
+    """
+    Retorna os dados de um smell específico pelo ID
+    """
+    try:
+        # Busca no repositório Sheets
+        repository = SheetsRepository()
+        smell_data = repository.get_smell_by_id(smell_id)
+        
+        if not smell_data:
+            return jsonify({
+                "error": "Smell not found",
+                "smell_id": smell_id
+            }), 404
+        
+        # print(f"[API] smell_data keys: {smell_data.keys()}")
+        # print(f"[API] rule type: {type(smell_data.get('rule'))}")
+        # print(f"[API] metrics type: {type(smell_data.get('metrics'))}")
+        
+        # Format response, parsing JSON fields if necessary
+        response = {
+            "id": smell_data.get("id"),
+            "ctx_id": smell_data.get("ctx_id"),
+            "timestamp_utc": smell_data.get("timestamp_utc"),
+            "user_id": smell_data.get("user_id"),
+            "org_id": smell_data.get("org_id"),
+            "loc_id": smell_data.get("loc_id"),
+            "project_id": smell_data.get("project_id"),
+            "type": smell_data.get("type"),
+            "smell_type": smell_data.get("smell_type"),
+            "is_smell": smell_data.get("is_smell") == "YES",
+            "rule": safe_json_parse(smell_data.get("rule"), {}),
+            "file_path": smell_data.get("file_path"),
+            "language": smell_data.get("language"),
+            "branch": smell_data.get("branch"),
+            "commit_sha": smell_data.get("commit_sha"),
+            "treatment": smell_data.get("treatment"),
+            "metrics": safe_json_parse(smell_data.get("metrics"), {})
+        }
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    
 def main():
     app.run(host="0.0.0.0", port=5000, debug=True)
 

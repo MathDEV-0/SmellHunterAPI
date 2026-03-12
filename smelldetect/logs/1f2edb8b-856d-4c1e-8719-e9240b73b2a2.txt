@@ -1,0 +1,53 @@
+{
+    "ctx_id": "1f2edb8b-856d-4c1e-8719-e9240b73b2a2",
+    "id": "207b6c53-3fcb-4863-81b6-8e0271247d4b",
+    "timestamp_utc": "2026-03-12T19:01:13.066899+00:00",
+    "user_id": 1.0,
+    "metrics": {
+        "LongMethod.CYCLO": 200.0,
+        "LongMethod.LOC": 300.0,
+        "GodClass.TCC": 4.0,
+        "GodClass.TO": 1.0,
+        "GodClass.ATFD": 12.0,
+        "GodClass.ATFD-LIMIT": 10.0,
+        "GodClass.TCC-LIMIT": 5.0,
+        "LongMethod.LOC-LIMIT": 100.0,
+        "LongMethod.CYCLO-LIMIT": 10.0
+    },
+    "thresholds": {
+        "GodClass.ATFD-LIMIT": 10.0,
+        "GodClass.TCC-LIMIT": 5.0,
+        "LongMethod.LOC-LIMIT": 100.0,
+        "LongMethod.CYCLO-LIMIT": 10.0
+    },
+    "smell_dsl": "smelltype DesignSmell;\r\n        smelltype ImplementationSmell;\r\n\r\n        // declara\u00e7\u00e3o de smells\r\n        smell LongMethod extends ImplementationSmell {\r\n            feature LOC is Ratio with threshold 100, 200;\r\n            feature CYCLO is Interval with threshold 10, 20;\r\n            symptom \"Methods too long\";\r\n            treatment \"Refactor by Extract Method\";\r\n        }\r\n\r\n        smell GodClass extends DesignSmell {\r\n            feature ATFD with threshold 4, 10;\r\n            feature TCC with threshold 3, 5;\r\n        }\r\n\r\n        // regras (comparando valores de features no ambiente)\r\n        rule R1 when (LongMethod.LOC > LongMethod.LOC-LIMIT) AND (GodClass.ATFD > GodClass.ATFD-LIMIT) then \"Flag\";\r\n        rule R2 when (GodClass.ATFD > GodClass.ATFD-LIMIT) AND (GodClass.TCC > GodClass.TCC-LIMIT) then \"Flag\";",
+    "request_data": {
+        "user_id": 1.0,
+        "org_id": 2.0,
+        "loc_id": 3.0,
+        "project_id": 4.0,
+        "file_path": "",
+        "language": "java",
+        "branch": "main",
+        "commit_sha": ""
+    },
+    "validation": {
+        "valid": true,
+        "errors": [],
+        "suggestions": []
+    },
+    "analysis": {
+        "smells": [
+            "LongMethod",
+            "GodClass"
+        ],
+        "rules": {
+            "R1": true,
+            "R2": false
+        },
+        "treatments": {
+            "LongMethod": "Refactor by Extract Method"
+        },
+        "interpreted": true
+    }
+}

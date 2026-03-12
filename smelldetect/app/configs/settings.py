@@ -1,17 +1,22 @@
 import os
+from dotenv import load_dotenv, find_dotenv
 
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+load_dotenv(find_dotenv())
 
-SERVICE_ACCOUNT_FILE = os.environ.get(
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+SERVICE_ACCOUNT_FILE = os.getenv(
     "GOOGLE_APPLICATION_CREDENTIALS",
-    os.path.join(BASE_DIR, "configs", "service_account.json")
+    "app/configs/service_account.json"
 )
 
-SPREADSHEET_ID = os.environ.get(
-    "SPREADSHEET_ID",
-    "182yT9A_gnif3p6rrUiPLSbXAQDRRJ7mlkkKbSvryGYs"
-)
+SERVICE_ACCOUNT_FILE = os.path.join(BASE_DIR, SERVICE_ACCOUNT_FILE)
+
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets"
 ]
+
+if not SPREADSHEET_ID:
+    raise ValueError("SPREADSHEET_ID not defined in .env")

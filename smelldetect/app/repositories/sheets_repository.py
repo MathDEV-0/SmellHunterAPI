@@ -74,7 +74,7 @@ class SheetsRepository:
 
         print(f"[SHEETS] cache loaded {len(self.id_cache)} smells")
     # -----------------------------
-    # CSV LOCAL (backup / auditoria)
+    # LOCAL CSV (backup / audit)
     # -----------------------------
     def save_or_update(self, payload):
 
@@ -112,7 +112,7 @@ class SheetsRepository:
         return payload["id"]
 
     # -----------------------------
-    # SERIALIZAÇÃO
+    # SERIALIZATION
     # -----------------------------
     def _serialize(self, payload):
 
@@ -159,7 +159,7 @@ class SheetsRepository:
 
         row_index = self.id_cache.get(smell_id)
 
-        # se não estiver no cache, procura na planilha
+        # if not in cache, try to find in sheet and update cache 
         if not row_index:
             row_index = self.find_smell_row(smell_id)
 
@@ -188,7 +188,7 @@ class SheetsRepository:
                 body={"values": [row_data]}
             ).execute()
 
-            # recarrega cache real da planilha
+            # reload cache after insert
             self._load_id_cache()
         
     def append_context_event(self, row):
@@ -203,3 +203,63 @@ class SheetsRepository:
             valueInputOption="RAW",
             body=body
         ).execute()
+
+    def get_smell_by_id(self, smell_id):
+        """
+        Search for a smell by its ID in the Google Sheet and return its data as a dictionary.
+        Uses the existing id_cache to find the row and then fetches the full row data.
+        """
+        try:
+            smell_id = str(smell_id)
+            print(f"[SHEETS] Getting smell by ID: {smell_id}")
+          
+            row_index = self.id_cache.get(smell_id)
+            
+        
+            if not row_index:
+                print(f"[SHEETS] ID {smell_id} not in cache, searching in sheet...")
+                row_index = self.find_smell_row(smell_id)
+                
+                if row_index:
+                    self.id_cache[smell_id] = row_index
+                    print(f"[SHEETS] Found ID {smell_id} at row {row_index}, cache updated")
+            
+
+            if row_index:
+                range_name = f"{self.sheet_name}!A{row_index}:Q{row_index}"
+                
+                result = self.client.spreadsheets().values().get(
+                    spreadsheetId=self.spreadsheet_id,
+                    range=range_name
+                ).execute()
+                
+                values = result.get("values", [])
+                
+                if values and len(values) > 0:
+                    row_data = values[0]
+                    
+                    smell_dict = {}
+                    for i, col in enumerate(self.COLUMNS):
+                        if i < len(row_data):
+                            smell_dict[col] = row_data[i]
+                        else:
+                            smell_dict[col] = ""
+                    
+                    if smell_dict.get("rule") and isinstance(smell_dict["rule"], str):
+                        try:
+                            smell_dict["rule"] = json.loads(smell_dict["rule"])
+                        except:
+                            pass
+                    
+                    print(f"[SHEETS] Successfully retrieved smell {smell_id}")
+                    return smell_dict
+                
+            else:
+                print(f"[SHEETS] Smell ID {smell_id} not found in sheet")
+                return None
+            
+        except Exception as e:
+            print(f"[SHEETS] Error getting smell by id {smell_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            return None    

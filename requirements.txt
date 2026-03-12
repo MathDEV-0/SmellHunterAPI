@@ -1,5 +1,22 @@
-google-api-python-client
-google-auth
-google-auth-httplib2
-google-auth-oauthlib
-lark
+# Core dependencies
+flask==2.3.3
+lark==1.2.2
+
+# Google Sheets integration
+google-api-python-client==2.108.0
+google-auth==2.28.1
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.0
+google-oauth2==1.0.0
+
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
+dataclasses==0.6  # For Python < 3.7 (optional)
+typing-extensions==4.9.0
+
+# Development tools (optional)
+pytest==7.4.4
+black==23.12.1
+flake8==7.0.0

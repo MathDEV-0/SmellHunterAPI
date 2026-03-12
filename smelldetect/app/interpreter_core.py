@@ -15,7 +15,7 @@ from lark import Lark, Transformer, v_args, Token
 
 
 # ==========================================================
-# GRAMÁTICA
+# GRAMMAR
 # ==========================================================
 GRAMMAR = r"""
 %import common.WS
@@ -64,7 +64,7 @@ literal       : ESCAPED_STRING | SIGNED_NUMBER | NAME
 """
 
 # ==========================================================
-# MODELO
+# MODEL
 # ==========================================================
 @dataclass
 class Feature:
@@ -232,7 +232,7 @@ class Builder(Transformer):
     def literal(self, x): return x
 
 # ==========================================================
-# INTERPRETADOR
+# INTERPRETER
 # ==========================================================
 def _flatten_to_comparisons(x):
     out = []
@@ -272,7 +272,7 @@ class Interpreter:
         return {">=": lf >= rf, "<=": lf <= rf, ">": lf > rf, "<": lf < rf}[op]
 
 # ==========================================================
-# API DE USO DIRETO
+# DIRECT USE API
 # ==========================================================
 def parse(code: str) -> DomainModel:
     parser = Lark(GRAMMAR, start="start", parser="lalr")
@@ -300,7 +300,7 @@ def run_interpretation(env: dict, code: str) -> dict:
     }
 
 # ==========================================================
-# EXECUÇÃO MANUAL (apenas se rodar diretamente)
+# MANUAL EXECUTION FOR TESTING
 # ==========================================================
 if __name__ == "__main__":
     if len(sys.argv) > 1:

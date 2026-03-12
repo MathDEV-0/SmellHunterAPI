@@ -96,7 +96,6 @@ class CsvSheetsObserver:
             if not file_exists:
                 writer.writeheader()
 
-            # Garante que todas colunas existam
             row = {col: data.get(col, "") for col in self.SHEET_COLUMNS}
 
             if isinstance(row["rule"], dict):
@@ -119,14 +118,34 @@ class ValidationObserver:
 
         smell_dsl = data["smell_dsl"]
         metrics = data["metrics"]
+        
+        # Get thresholds from payload
+        thresholds = data.get("thresholds", {})
+        
+        # print(f"[VALIDATOR] metrics keys: {list(metrics.keys())}")
+        # print(f"[VALIDATOR] thresholds keys: {list(thresholds.keys())}")
+        
+        # COMBINE metrics and thresholds for validation AND for forwarding
+        combined_metrics = {**metrics, **thresholds}
+        
+        # print(f"[VALIDATOR] combined keys: {list(combined_metrics.keys())}")
 
-        result = self.validation_service.validate(smell_dsl, metrics)
+        # Validate using the combined metrics (so thresholds are available if needed)
+        result = self.validation_service.validate(smell_dsl, combined_metrics)
 
         if result["valid"]:
             print(f"[VALIDATOR] ctx={data['ctx_id']} validation successful")
+            
+            # Pass the combined metrics forward
+            enriched_data = {
+                **data,
+                "validation": result,
+                "metrics": combined_metrics  # ← CRITICAL: pass combined metrics
+            }
+            
             self.event_bus.publish(
                 EventTypes.VALIDATION_COMPLETED,
-                {**data, "validation": result}
+                enriched_data
             )
 
         else:
@@ -150,16 +169,24 @@ class InterpreterWorker:
         smell_dsl = data["smell_dsl"]
         env_raw = data["metrics"]
 
-        # normalização
+        print(f"[INTERPRETER] env_raw keys: {list(env_raw.keys())}")
+
+        # Convert string keys with dots to tuple keys for the interpreter
         env = {}
         for key, value in env_raw.items():
             if "." in key:
-                smell, feature = key.split(".", 1)
-                env[(smell, feature)] = value
+                # Split only on first dot to preserve feature names with hyphens
+                parts = key.split(".", 1)
+                if len(parts) == 2:
+                    smell, feature = parts
+                    env[(smell, feature)] = value
+                else:
+                    env[key] = value
             else:
                 env[key] = value
 
-        
+        print(f"[INTERPRETER] converted env keys: {list(env.keys())}")
+
         result = run_interpretation(env, smell_dsl)
 
         print(f"[INTERPRETER] ctx={data['ctx_id']} running analysis")
@@ -201,9 +228,9 @@ class PersistenceWorker:
 
         record_id = self.repository.save_or_update(payload)
 
-        print("DATA RECEIVED BY PERSISTENCE:")
-        import json
-        print(json.dumps(data, indent=2))
+        #print("DATA RECEIVED BY PERSISTENCE:")
+        #import json
+        #print(json.dumps(data, indent=2))
         self.event_bus.publish(
             EventTypes.PERSISTENCE_COMPLETED,
             {
@@ -220,7 +247,6 @@ class PersistenceWorker:
         rules = analysis.get("rules", {})
         treatments = analysis.get("treatments", {})
 
-        # corrigido aqui
         dsl = data.get("smell_dsl", "")
 
         match = re.search(r"extends\s+(\w+)", dsl, re.IGNORECASE)
