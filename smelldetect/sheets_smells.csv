@@ -1,4 +1,0 @@
-id,timestamp_utc,time_zone,user_id,org_id,loc_id,project_id,type,smell_type,is_smell,rule,file_path,language,branch,commit_sha,ctx_id,treatment
-207b6c53-3fcb-4863-81b6-8e0271247d4b,2026-03-12T19:01:13.066899+00:00,UTC,1.0,2.0,3.0,4.0,"LongMethod, GodClass",ImplementationSmell,NO,"{""R1"": true, ""R2"": false}",,java,main,,1f2edb8b-856d-4c1e-8719-e9240b73b2a2,Refactor by Extract Method
-4c447336-0db6-444e-83a5-4abab4c35fe8,2026-03-12T19:01:41.007606+00:00,UTC,1.0,2.0,3.0,4.0,GodClass,DesignSmell,NO,"{""GodClassRule"": false}",,java,main,,31ea5794-1beb-4201-9969-72cfac38527f,Refactor into smaller classes
-d480ef65-6340-403a-98d1-dafe5e3dc229,2026-03-12T19:01:53.438550+00:00,UTC,1.0,2.0,3.0,4.0,GodClass,DesignSmell,YES,"{""GodClassRule"": true}",,java,main,,fce27c99-6c63-447b-9b6b-f036ec19fc62,Refactor into smaller classes
