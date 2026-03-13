@@ -388,13 +388,14 @@ source venv/bin/activate
 
  ```
     id, timestamp_utc, time_zone, user_id, org_id, loc_id, project_id, type, smell_type, is_smell, rule, file_path, language, branch, commit_sha, ctx_id, treatment
-   ```
-    Context worksheet headers:
+  ```
 
-    ```
+Context worksheet headers:
 
+```
     ctx_id, user_id, org_id, loc_id, timestamp_utc, event_type
-    ```
+```
+
 The spreadsheets are now ready to receive data from your SmellDSL Detection Service!
 
 ### 4\. Configuration File
@@ -482,6 +483,7 @@ python -m app.interpreter_api
 ```
 
 ## Eclipse Plugin Setup 
+ 🔗[**SmellHunter Eclipse Plugin**](https://github.com/MathDEV-0/SmellHunter-Eclipse-Plugin.git)
 
 ### 1\. Requirements
 
