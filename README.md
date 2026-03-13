@@ -37,7 +37,12 @@ Event-driven API for detecting code smells using metrics analysis and a Domain S
        - [Requirements](#requirements)
        - [Import Plugin Project](#import-plugin-project)
        - [Build and Run](#build-and-run)
-     
+
+11. [Data Visualization](#data-visualization)
+       - [Overview](#overview)
+       - [Physical Context View](#physical-context-view)
+       - [Smell Details View](#smell-details-view)
+    
 ## Research Motivation
 
 ### *Problem*
@@ -531,3 +536,39 @@ python -m app.interpreter_api
 4.  In the dialog, expand the plugin category and select "MyView"
 
 5.  Click Open to display the view
+
+
+## Data Visualization
+
+### Overview
+
+SmellHunter persists detected smells and contextual execution data in Google Sheets.  
+These datasets can be connected to AppSheet to provide an interactive visualization layer for exploring detection results.
+
+The dashboard allows users to inspect detected smells, navigate contextual information, and analyze detection outcomes through a structured interface.
+
+---
+
+### Physical Context View
+
+This view presents contextual information related to the execution environment where the analysis occurred.  
+It includes metadata such as organization identifiers, project information, location identifiers, and execution timestamps.
+
+The goal of this view is to support contextual analysis of smell occurrences across different projects and development environments.
+
+![Physical Context View](figures/tela_sao_leo_location.png)
+![Physical Context View1](figures/tela_sao_leo_smell.png)
+![Physical Context View2](figures/tela_sao_leo_smell2.png)
+
+---
+
+### Smell Details View
+
+The Smell Details view displays the complete information related to a detected smell instance.  
+This includes the smell type, evaluated rule results, associated metrics, and metadata describing the analyzed artifact.
+
+This view helps developers understand why a smell was detected and provides insights to guide refactoring decisions.
+
+![Smell Details View](figures/tela5_artigo.png)
+![Smell Details View](figures/tela6_artigo.png)
+![Smell Details View](figures/tela7_artigo.png)
