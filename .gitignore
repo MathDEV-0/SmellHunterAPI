@@ -140,3 +140,5 @@ __marimo__/"smelldetect/app/configs/service_account.json"
 
 #sheets_smells.csv
 /smelldetect/sheets_smells.csv
+
+/smelldetect/logs/*
