@@ -546,6 +546,11 @@ SmellHunter persists detected smells and contextual execution data in Google She
 These datasets can be connected to AppSheet to provide an interactive visualization layer for exploring detection results.
 
 The dashboard allows users to inspect detected smells, navigate contextual information, and analyze detection outcomes through a structured interface.
+---
+
+🔗[**SmellHunter AppSheet Mobile View**](https://www.appsheet.com/newshortcut/2add826f-5f42-4c47-9188-89bac62978e4)
+
+🔗[**SmellHunter AppSheet Browser View**](https://www.appsheet.com/start/2add826f-5f42-4c47-9188-89bac62978e4)
 
 ---
 
