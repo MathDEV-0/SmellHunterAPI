@@ -317,6 +317,7 @@ Setup Guide
 ## Reproducibility Video
 
 [![Watch the video](https://img.youtube.com/vi/Q290D5Pgew0/maxresdefault.jpg)](https://youtu.be/Q290D5Pgew0)
+🔗 **[Link](https://youtu.be/Q290D5Pgew0)**
 
 
 Complete Step-by-Step Installation
