@@ -3,9 +3,30 @@ SmellHunter API
 
 Event-driven API for detecting code smells using metrics analysis and a Domain Specific Language (DSL).
 
+## Research Motivation
+
+### *Problem*
+
+Code smells are internal structures in source code that violate coding conventions and design principles, harming the internal quality of evolving systems and indicating issues of architectural and design degradation.
+
+They typically arise when developers make hurried or poorly planned modifications to implement features or fix problems.
+
+### *Research Gap*
+
+Traditional detection approaches focus mainly on static analysis and predefined technical metrics. However, such approaches often ignore important aspects of the development context, such as team characteristics, project constraints, and the stage of software evolution.
+
+### *Proposed Approach*
+
+Unlike traditional detection approaches, **SmellHunter integrates technical metrics alongside development context**.
+
+The tool supports **asynchronous analyses**, reducing interference with the developer’s workflow while enabling scalable and incremental processing.
+
+This approach aims to **reduce false positives** and helps in **refactoring decisions aligned with real-world development contexts**.
+
+
 Architecture
 ------------
-
+![Architecture](/figures/article_diagram_smellhunter.drawio.png)
 The system uses an event bus pattern with the following event types:
 
 -   `METRICS_VALIDATION_REQUESTED`
@@ -15,6 +36,36 @@ The system uses an event bus pattern with the following event types:
 -   `ANALYSIS_COMPLETED`
 
 -   `PERSISTENCE_COMPLETED`
+
+## Detection Workflow
+
+```mermaid
+flowchart LR
+
+A[Eclipse Plugin / Client] --> B[POST /analyze]
+
+B --> C[API Gateway]
+
+C --> D[Event: METRICS_VALIDATION_REQUESTED]
+
+D --> E[Validation Service]
+
+E --> F{Validation Result}
+
+F -->|Success| G[Event: VALIDATION_COMPLETED]
+F -->|Failure| X[Event: VALIDATION_FAILED]
+
+G --> H[Interpreter Engine]
+
+H --> I[Event: ANALYSIS_COMPLETED]
+
+I --> J[Persistence Worker]
+
+J --> K[(Smell Storage)]
+
+K --> L[GET /status]
+K --> M[GET /smells]
+```
 
 API Endpoints
 -------------
@@ -294,14 +345,15 @@ source venv/bin/activate
 
 ### 3.3 Google Sheets Setup
 
-1.  Download the pre-configured spreadsheet:
+1. Download the pre-configured spreadsheet:
 
-    -   Access the shared Google Drive link: [SmellHunter Database Template]([https://your-google-drive-link-here/](https://docs.google.com/spreadsheets/d/1mYoiaN0SBuAhNZgl-2trXicUmo2pxkHMTsYyr1uPRMo/edit?usp=sharing))
+   - Access the shared Google Drive template:
 
-    -   Click "Make a copy" to save it to your own Google Drive
+     🔗 **[SmellHunter Database Template](https://docs.google.com/spreadsheets/d/1mYoiaN0SBuAhNZgl-2trXicUmo2pxkHMTsYyr1uPRMo/edit?usp=sharing)**
 
-    -   Rename it as needed (e.g., "SmellHunter - [Your Project Name]")
+   - Click "Make a copy" to save it to your own Google Drive
 
+   - Rename it as needed (e.g., "SmellHunter - [Your Project Name]")
 2.  Worksheet Structure (already configured):
 
     -   Bad_Smell - Contains all detected smells with complete metadata
