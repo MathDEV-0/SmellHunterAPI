@@ -3,6 +3,41 @@ SmellHunter API
 
 Event-driven API for detecting code smells using metrics analysis and a Domain Specific Language (DSL).
 
+## Table of Contents
+
+1. [Research Motivation](#research-motivation)
+   - [Problem](#problem)
+   - [Research Gap](#research-gap)
+   - [Proposed Approach](#proposed-approach)
+
+2. [Architecture](#architecture)
+
+3. [Detection Workflow](#detection-workflow)
+
+4. [API Endpoints](#api-endpoints)
+   - [POST analyze](#post-analyze)
+   - [GET status](#get-statusctx_id)
+   - [GET smells](#get-smellssmell_id)
+
+5. [Event Flow](#event-flow)
+
+6. [Response Codes](#response-codes)
+
+7. [Observers Overview](#observers-overview)
+
+8. [Setup Guide](#setup-guide)
+   - [Prerequisites](#prerequisites)
+      - [Python Environment](#python-environment)
+      - [Install Dependencies](#install-dependencies)
+      - [Google Sheets Setup](#google-sheets-setup)
+    
+9. [Running the Application](#running-the-application)
+
+10. [Eclipse Plugin Setup](#eclipse-plugin-setup)
+       - [Requirements](#requirements)
+       - [Import Plugin Project](#import-plugin-project)
+       - [Build and Run](#build-and-run)
+     
 ## Research Motivation
 
 ### *Problem*
@@ -255,23 +290,6 @@ Response Codes
 | 404 | Resource not found |
 | 500 | Internal server error |
 
-Example Usage (cURL)
---------------------
-
-bash
-
-# Submit analysis
-curl -X POST http://localhost:5000/analyze\
-  -F "user_id=123"\
-  -F "smell_dsl=@smell.dsl"\
-  -F "metrics=@metrics.csv"\
-  -F "thresholds=@thresholds.csv"
-
-# Check status
-curl http://localhost:5000/status/550e8400-e29b-41d4-a716-446655440000
-
-# Get result
-curl http://localhost:5000/smells/6ba7b810-9dad-11d1-80b4-00c04fd430c8
 
 Observers Overview
 ------------------
@@ -296,11 +314,9 @@ Complete Step-by-Step Installation
 
 ## Prerequisites
 
-### 1\. Python Environment
+### Python Environment
 
-
-
-## Python 3.9+ required
+#### Python 3.9+ required
  ```
 python --version  # Verify version
  ```
@@ -317,9 +333,10 @@ venv\Scripts\activate
 # Linux/Mac:
 source venv/bin/activate
  ```
-### 2\. Install Dependencies
-
-### 3\. Google Sheets Setup
+----------
+### Install Dependencies
+----------
+### Google Sheets Setup
 
 #### 3.1 Create Google Cloud Project
 
@@ -388,13 +405,14 @@ source venv/bin/activate
 
  ```
     id, timestamp_utc, time_zone, user_id, org_id, loc_id, project_id, type, smell_type, is_smell, rule, file_path, language, branch, commit_sha, ctx_id, treatment
-   ```
-    Context worksheet headers:
+  ```
 
-    ```
+Context worksheet headers:
 
+```
     ctx_id, user_id, org_id, loc_id, timestamp_utc, event_type
-    ```
+```
+
 The spreadsheets are now ready to receive data from your SmellDSL Detection Service!
 
 ### 4\. Configuration File
@@ -482,8 +500,9 @@ python -m app.interpreter_api
 ```
 
 ## Eclipse Plugin Setup 
+ 🔗[**SmellHunter Eclipse Plugin**](https://github.com/MathDEV-0/SmellHunter-Eclipse-Plugin.git)
 
-### 1\. Requirements
+###  Requirements
 
 -   Eclipse IDE 2023-12 or later
 
@@ -491,7 +510,7 @@ python -m app.interpreter_api
 
 -   SWT libraries (included with Eclipse)
 
-### 2\. Import Plugin Project
+### Import Plugin Project
 
 1.  File → Import → Existing Projects into Workspace
 
@@ -501,7 +520,7 @@ python -m app.interpreter_api
 
 4.  Click Finish
 
-### 3\. Build and Run
+### Build and Run
 
 1.  Right-click on the project → Run As → Eclipse Application
 
