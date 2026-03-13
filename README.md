@@ -333,8 +333,9 @@ venv\Scripts\activate
 # Linux/Mac:
 source venv/bin/activate
  ```
+----------
 ### Install Dependencies
-
+----------
 ### Google Sheets Setup
 
 #### 3.1 Create Google Cloud Project
