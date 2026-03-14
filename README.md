@@ -307,7 +307,7 @@ Retrieve persisted smell data.
 
 ## Reproducibility Video
 
-[![Watch the video](https://img.youtube.com/vi/Q290D5Pgew0/maxresdefault.jpg)](https://youtu.be/Q290D5Pgew0)
+[![Watch the video](https://img.youtube.com/vi/WKONlb5o1TY/maxresdefault.jpg)](https://youtu.be/WKONlb5o1TY)
 🔗 **[Link](https://youtu.be/Q290D5Pgew0)**
 
 ## Complete Step-by-Step Installation
