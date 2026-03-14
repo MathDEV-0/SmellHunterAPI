@@ -113,7 +113,7 @@ class ValidationObserver:
 
         print("[VALIDATOR] received:", event_type)
 
-        if event_type != EventTypes.METRICS_VALIDATION_REQUESTED:
+        if event_type != EventTypes.ANALYSIS_REQUESTED:
             return
 
         smell_dsl = data["smell_dsl"]
@@ -169,7 +169,7 @@ class InterpreterWorker:
         smell_dsl = data["smell_dsl"]
         env_raw = data["metrics"]
 
-        print(f"[INTERPRETER] env_raw keys: {list(env_raw.keys())}")
+        # print(f"[INTERPRETER] env_raw keys: {list(env_raw.keys())}")
 
         # Convert string keys with dots to tuple keys for the interpreter
         env = {}
@@ -185,7 +185,7 @@ class InterpreterWorker:
             else:
                 env[key] = value
 
-        print(f"[INTERPRETER] converted env keys: {list(env.keys())}")
+        #print(f"[INTERPRETER] converted env keys: {list(env.keys())}")
 
         result = run_interpretation(env, smell_dsl)
 

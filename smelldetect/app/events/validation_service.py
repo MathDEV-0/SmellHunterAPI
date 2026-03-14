@@ -70,15 +70,15 @@ class ValidationService:
         # Extrai as métricas usadas no DSL
         declared_metrics, used_metrics = self.extractor.extract(smell_dsl)
         
-        print(f"[DEBUG] used_metrics: {used_metrics}")
-        print(f"[DEBUG] env_raw keys: {list(env_raw.keys())}")
+        # print(f"[DEBUG] used_metrics: {used_metrics}")
+        # print(f"[DEBUG] env_raw keys: {list(env_raw.keys())}")
         
         # SEPARA métricas normais de thresholds (que terminam com -LIMIT)
         normal_metrics = {m for m in used_metrics if not m.endswith("-LIMIT")}
         threshold_metrics = {m for m in used_metrics if m.endswith("-LIMIT")}
         
-        print(f"[DEBUG] normal_metrics: {normal_metrics}")
-        print(f"[DEBUG] threshold_metrics: {threshold_metrics}")
+        # print(f"[DEBUG] normal_metrics: {normal_metrics}")
+        # print(f"[DEBUG] threshold_metrics: {threshold_metrics}")
         
         # Verifica apenas as métricas normais
         missing = []

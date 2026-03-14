@@ -1,5 +1,4 @@
-SmellHunter API
-==========================
+# SmellHunter API
 
 Event-driven API for detecting code smells using metrics analysis and a Domain Specific Language (DSL).
 
@@ -27,35 +26,34 @@ Event-driven API for detecting code smells using metrics analysis and a Domain S
 
 8. [Setup Guide](#setup-guide)
    - [Prerequisites](#prerequisites)
-      - [Python Environment](#python-environment)
-      - [Install Dependencies](#install-dependencies)
-      - [Google Sheets Setup](#google-sheets-setup)
-    
+     - [Python Environment](#python-environment)
+     - [Install Dependencies](#install-dependencies)
+     - [Google Sheets Setup](#google-sheets-setup)
 9. [Running the Application](#running-the-application)
 
 10. [Eclipse Plugin Setup](#eclipse-plugin-setup)
-       - [Requirements](#requirements)
-       - [Import Plugin Project](#import-plugin-project)
-       - [Build and Run](#build-and-run)
+    - [Requirements](#requirements)
+    - [Import Plugin Project](#import-plugin-project)
+    - [Build and Run](#build-and-run)
 
 11. [Data Visualization](#data-visualization)
-       - [Overview](#overview)
-       - [Physical Context View](#physical-context-view)
-       - [Smell Details View](#smell-details-view)
-    
+    - [Overview](#overview)
+    - [Physical Context View](#physical-context-view)
+    - [Smell Details View](#smell-details-view)
+
 ## Research Motivation
 
-### *Problem*
+### _Problem_
 
 Code smells are internal structures in source code that violate coding conventions and design principles, harming the internal quality of evolving systems and indicating issues of architectural and design degradation.
 
 They typically arise when developers make hurried or poorly planned modifications to implement features or fix problems.
 
-### *Research Gap*
+### _Research Gap_
 
 Traditional detection approaches focus mainly on static analysis and predefined technical metrics. However, such approaches often ignore important aspects of the development context, such as team characteristics, project constraints, and the stage of software evolution.
 
-### *Proposed Approach*
+### _Proposed Approach_
 
 Unlike traditional detection approaches, **SmellHunter integrates technical metrics alongside development context**.
 
@@ -63,19 +61,18 @@ The tool supports **asynchronous analyses**, reducing interference with the deve
 
 This approach aims to **reduce false positives** and helps in **refactoring decisions aligned with real-world development contexts**.
 
+## Architecture
 
-Architecture
-------------
 ![Architecture](/figures/article_diagram_smellhunter.drawio.png)
 The system uses an event bus pattern with the following event types:
 
--   `METRICS_VALIDATION_REQUESTED`
+- `ANALYSIS_REQUESTED`
 
--   `VALIDATION_COMPLETED` / `VALIDATION_FAILED`
+- `VALIDATION_COMPLETED` / `VALIDATION_FAILED`
 
--   `ANALYSIS_COMPLETED`
+- `ANALYSIS_COMPLETED`
 
--   `PERSISTENCE_COMPLETED`
+- `PERSISTENCE_COMPLETED`
 
 ## Detection Workflow
 
@@ -86,7 +83,7 @@ A[Eclipse Plugin / Client] --> B[POST /analyze]
 
 B --> C[API Gateway]
 
-C --> D[Event: METRICS_VALIDATION_REQUESTED]
+C --> D[Event: ANALYSIS_REQUESTED]
 
 D --> E[Validation Service]
 
@@ -107,8 +104,7 @@ K --> L[GET /status]
 K --> M[GET /smells]
 ```
 
-API Endpoints
--------------
+## API Endpoints
 
 ### `POST /analyze`
 
@@ -118,20 +114,20 @@ Request Format: `multipart/form-data` or `application/json`
 
 #### Required Parameters (multipart/form-data):
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| user_id | string | Yes | User identifier |
-| smell_dsl | file | Yes | `.smelldsl` file with smell definitions |
-| metrics | file | Yes | CSV/JSON file with metric values |
-| thresholds | file | Yes | CSV/JSON file with threshold values |
-
+| Field      | Type   | Required | Description                             |
+| ---------- | ------ | -------- | --------------------------------------- |
+| user_id    | string | Yes      | User identifier                         |
+| smell_dsl  | file   | Yes      | `.smelldsl` file with smell definitions |
+| metrics    | file   | Yes      | CSV/JSON file with metric values        |
+| thresholds | file   | Yes      | CSV/JSON file with threshold values     |
 
 ### Optional Parametes
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| loc_id | string | Yes | Location identifier |
-| project_id | string | Yes | Project identifier |
-| org_id | string | Yes | Company identifier |
+
+| Field      | Type   | Required | Description         |
+| ---------- | ------ | -------- | ------------------- |
+| loc_id     | string | Yes      | Location identifier |
+| project_id | string | Yes      | Project identifier  |
+| org_id     | string | Yes      | Company identifier  |
 
 #### File Formats:
 
@@ -145,6 +141,7 @@ LongMethod.LOC,300
 ```
 
 ## `thresholds.csv`
+
 ```
 Metrica,Valor
 GodClass.ATFD-LIMIT,10
@@ -165,7 +162,6 @@ rule GodClassRule when (GodClass.ATFD > GodClass.ATFD-LIMIT) then "Flag";
 ```
 
 #### JSON Request (alternative):
-
 
 ```
 {
@@ -190,6 +186,7 @@ rule GodClassRule when (GodClass.ATFD > GodClass.ATFD-LIMIT) then "Flag";
   }
 }
 ```
+
 #### Response (202 Accepted):
 
 ```
@@ -258,14 +255,13 @@ Retrieve persisted smell data.
 }
 ```
 
-Event Flow
-----------
+## Event Flow
 
 1.  Eclipse Plugin Client → `POST /analyze`
 
 2.  API generates `ctx_id` and `smell_id`
 
-3.  Event `METRICS_VALIDATION_REQUESTED` published
+3.  Event `ANALYSIS__REQUESTED` published
 
 4.  ValidationObserver validates metrics and thresholds
 
@@ -285,68 +281,68 @@ Event Flow
 
 12. Client polls `GET /status/<ctx_id>` and `GET /smells/<smell_id>`
 
-Response Codes
---------------
+## Response Codes
 
-| Code | Description |
-| --- | --- |
-| 202 | Analysis accepted (async processing) |
-| 400 | Bad request (invalid data) |
-| 404 | Resource not found |
-| 500 | Internal server error |
+| Code | Description                          |
+| ---- | ------------------------------------ |
+| 202  | Analysis accepted (async processing) |
+| 400  | Bad request (invalid data)           |
+| 404  | Resource not found                   |
+| 500  | Internal server error                |
 
+## Observers Overview
 
-Observers Overview
-------------------
+| Observer                  | Event                 | Responsibility            |
+| ------------------------- | --------------------- | ------------------------- |
+| ValidationObserver        | ANALYSIS_REQUESTED    | Starts the pipeline       |
+| InterpreterWorker         | VALIDATION_COMPLETED  | Executes interpretation   |
+| PersistenceWorker         | ANALYSIS_COMPLETED    | Saves to CSV              |
+| SheetsPersistenceObserver | PERSISTENCE_COMPLETED | Saves to Google Sheets    |
+| StatusWorker              | ANALYSIS_COMPLETED    | Stores for status queries |
+| LogObserver               | ANALYSIS_COMPLETED    | Saves log file            |
+| CsvSheetsObserver         | ANALYSIS_COMPLETED    | Exports to CSV            |
+| EventBusLoggerObserver    | All                   | Logs context events       |
 
-| Observer | Event | Responsibility |
-| --- | --- | --- |
-| ValidationObserver | METRICS_VALIDATION_REQUESTED | Validates metrics |
-| InterpreterWorker | VALIDATION_COMPLETED | Executes interpretation |
-| PersistenceWorker | ANALYSIS_COMPLETED | Saves to CSV |
-| SheetsPersistenceObserver | PERSISTENCE_COMPLETED | Saves to Google Sheets |
-| StatusWorker | ANALYSIS_COMPLETED | Stores for status queries |
-| LogObserver | ANALYSIS_COMPLETED | Saves log file |
-| CsvSheetsObserver | ANALYSIS_COMPLETED | Exports to CSV |
-| EventBusLoggerObserver | All | Logs context events |
-
-
-Setup Guide
-===========
+# Setup Guide
 
 ## Reproducibility Video
 
 [![Watch the video](https://img.youtube.com/vi/Q290D5Pgew0/maxresdefault.jpg)](https://youtu.be/Q290D5Pgew0)
 🔗 **[Link](https://youtu.be/Q290D5Pgew0)**
 
-
-Complete Step-by-Step Installation
-----------------------------------
+## Complete Step-by-Step Installation
 
 ## Prerequisites
 
 ### Python Environment
 
 #### Python 3.9+ required
- ```
-python --version  # Verify version
- ```
-## Create virtual environment (recommended)
- ```
-python -m venv venv
- ```
 
+```
+python --version  # Verify version
+```
+
+## Create virtual environment (recommended)
+
+```
+python -m venv venv
+```
 
 ## Activate virtual environment
- ```
+
+```
 # Windows:
 venv\Scripts\activate
 # Linux/Mac:
 source venv/bin/activate
- ```
-----------
+```
+
+---
+
 ### Install Dependencies
-----------
+
+---
+
 ### Google Sheets Setup
 
 #### 3.1 Create Google Cloud Project
@@ -374,7 +370,6 @@ source venv/bin/activate
 ### 3.3 Google Sheets Setup
 
 1. Download the pre-configured spreadsheet:
-
    - Access the shared Google Drive template:
 
      🔗 **[SmellHunter Database Template](https://docs.google.com/spreadsheets/d/1mYoiaN0SBuAhNZgl-2trXicUmo2pxkHMTsYyr1uPRMo/edit?usp=sharing)**
@@ -382,41 +377,41 @@ source venv/bin/activate
    - Click "Make a copy" to save it to your own Google Drive
 
    - Rename it as needed (e.g., "SmellHunter - [Your Project Name]")
-2.  Worksheet Structure (already configured):
 
-    -   Bad_Smell - Contains all detected smells with complete metadata
+2. Worksheet Structure (already configured):
+   - Bad_Smell - Contains all detected smells with complete metadata
 
-    -   Context - Logs all context events and execution history
+   - Context - Logs all context events and execution history
 
-3.  Share with Service Account:
+3. Share with Service Account:
+   - Open your copied spreadsheet
 
-    -   Open your copied spreadsheet
+   - Click the "Share" button in the top-right corner
 
-    -   Click the "Share" button in the top-right corner
+   - Add your service account email (found in `service-account.json`)
 
-    -   Add your service account email (found in `service-account.json`)
+   - Assign role: Editor
 
-    -   Assign role: Editor
+   - Uncheck "Notify people" and click Share
 
-    -   Uncheck "Notify people" and click Share
+4. Get Spreadsheet ID:
+   - The spreadsheet URL contains the ID:\
+     `https://docs.google.com/spreadsheets/d/``SPREADSHEET_ID_HERE``/edit`
 
-4.  Get Spreadsheet ID:
+   - Copy this ID and add it to your `.env` file:
 
-    -   The spreadsheet URL contains the ID:\
-        `https://docs.google.com/spreadsheets/d/``SPREADSHEET_ID_HERE``/edit`
-
-    -   Copy this ID and add it to your `.env` file:
 ```
         SPREADSHEET_ID=YOUR_SPREADSHEET_ID
         GOOGLE_APPLICATION_CREDENTIALS=app/configs/service_account.json
 ```
+
 5.  Verify Headers (already set up):
 
     Bad_Smell worksheet headers:
 
- ```
-    id, timestamp_utc, time_zone, user_id, org_id, loc_id, project_id, type, smell_type, is_smell, rule, file_path, language, branch, commit_sha, ctx_id, treatment
-  ```
+```
+   id, timestamp_utc, time_zone, user_id, org_id, loc_id, project_id, type, smell_type, is_smell, rule, file_path, language, branch, commit_sha, ctx_id, treatment
+```
 
 Context worksheet headers:
 
@@ -430,20 +425,23 @@ The spreadsheets are now ready to receive data from your SmellDSL Detection Serv
 
 Create `.env` file in project root:
 
-
 #### Flask settings
+
 ```
 FLASK_ENV=development
 FLASK_APP=interpreter_api.py
 PORT=5000
 ```
+
 #### Google Sheets
+
 ```
 SPREADSHEET_ID=your-spreadsheet-id-here
 SERVICE_ACCOUNT_FILE=service-account.json
 ```
 
 #### Logging
+
 ```
 LOG_DIR=logs
 ```
@@ -475,6 +473,7 @@ smell-detect/
 ```
 
 ### 6\. pip install requirements.txt
+
 ```
 #Core dependencies
 flask==2.3.3
@@ -504,22 +503,22 @@ flake8==7.0.0
 
 ### 1\. Start the API Server
 
-
 ```
 cd smelldetect
 python -m app.interpreter_api
 ```
 
-## Eclipse Plugin Setup 
- 🔗[**SmellHunter Eclipse Plugin**](https://github.com/MathDEV-0/SmellHunter-Eclipse-Plugin.git)
+## Eclipse Plugin Setup
+
+🔗[**SmellHunter Eclipse Plugin**](https://github.com/MathDEV-0/SmellHunter-Eclipse-Plugin.git)
 
 ###  Requirements
 
--   Eclipse IDE 2023-12 or later
+- Eclipse IDE 2023-12 or later
 
--   JDK 21 or later
+- JDK 21 or later
 
--   SWT libraries (included with Eclipse)
+- SWT libraries (included with Eclipse)
 
 ### Import Plugin Project
 
@@ -543,7 +542,6 @@ python -m app.interpreter_api
 
 5.  Click Open to display the view
 
-
 ## Data Visualization
 
 ### Overview
@@ -551,8 +549,7 @@ python -m app.interpreter_api
 SmellHunter persists detected smells and contextual execution data in Google Sheets.  
 These datasets can be connected to AppSheet to provide an interactive visualization layer for exploring detection results.
 
-The dashboard allows users to inspect detected smells, navigate contextual information, and analyze detection outcomes through a structured interface.
----
+## The dashboard allows users to inspect detected smells, navigate contextual information, and analyze detection outcomes through a structured interface.
 
 🔗[**SmellHunter AppSheet Mobile View**](https://www.appsheet.com/newshortcut/2add826f-5f42-4c47-9188-89bac62978e4)
 

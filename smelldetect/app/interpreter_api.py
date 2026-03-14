@@ -52,7 +52,7 @@ event_bus.subscribe(EventTypes.ANALYSIS_COMPLETED, status_worker)
 
 # Register observers
 # Validation flow
-event_bus.subscribe(EventTypes.METRICS_VALIDATION_REQUESTED,validation_observer)
+event_bus.subscribe(EventTypes.ANALYSIS_REQUESTED,validation_observer)
 
 event_bus.subscribe(EventTypes.VALIDATION_COMPLETED,ValidationLoggerObserver())
 
@@ -74,7 +74,7 @@ event_bus.subscribe(EventTypes.PERSISTENCE_COMPLETED,sheets_persistence_observer
 #Log flow
 logger = EventBusLoggerObserver(repository)
 
-event_bus.subscribe(EventTypes.METRICS_VALIDATION_REQUESTED, logger)
+event_bus.subscribe(EventTypes.ANALYSIS_REQUESTED, logger)
 event_bus.subscribe(EventTypes.VALIDATION_COMPLETED, logger)
 event_bus.subscribe(EventTypes.ANALYSIS_COMPLETED, logger)
 event_bus.subscribe(EventTypes.PERSISTENCE_COMPLETED, logger)
@@ -207,7 +207,7 @@ def asynchAnalisis():
         # print(f"[DEBUG] Thresholds in payload: {list(thresholds.keys())}")
 
         event_bus.publish(
-            EventTypes.METRICS_VALIDATION_REQUESTED,
+            EventTypes.ANALYSIS_REQUESTED,
             event_payload
         )
 
