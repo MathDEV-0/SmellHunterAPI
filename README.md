@@ -63,7 +63,7 @@ This approach aims to **reduce false positives** and helps in **refactoring deci
 
 ## Architecture
 
-![Architecture](/figures/article_diagram_smellhunter.drawio.png)
+![Architecture](/figures/overview-ead-architecture.png)
 The system uses an event bus pattern with the following event types:
 
 - `ANALYSIS_REQUESTED`
