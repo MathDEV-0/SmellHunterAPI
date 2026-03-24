@@ -1,6 +1,8 @@
 # Core dependencies
 flask==2.3.3
 lark==1.2.2
+pandas==2.1.1
+matplotlib==3.8.1
 
 # Google Sheets integration
 google-api-python-client==2.108.0
@@ -9,6 +11,8 @@ google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.0
 google-oauth2==1.0.0
 
+# StatsForecast / Nixtla
+statsforecast==1.6.2
 
 # Utilities
 python-dotenv==1.0.0
