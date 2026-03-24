@@ -11,6 +11,12 @@ import time
 import uuid
 import re
 import traceback
+import pandas as pd
+from statsforecast import StatsForecast
+from statsforecast.models import AutoETS
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from app.events.event_types import EventTypes
 from app.events.observers import StatusWorker, ValidationObserver
 from app.events.event_types import EventTypes
@@ -232,6 +238,122 @@ def status(ctx_id):
         }), 200
 
     return jsonify(result), 200
+
+@app.route("/forecast/<project_id>", methods=["GET"])
+def forecast(project_id):
+    try:
+        # --------------------------------
+        # Lê os registros do Google Sheets
+        # --------------------------------
+        repository = SheetsRepository()
+        df_smell = repository.get_bad_smell_records(project_id)
+
+        if df_smell.empty:
+            return jsonify({"error": f"No Bad_Smell records found for project {project_id}"}), 404
+
+        # --------------------------------
+        # Converte is_smell para 0/1 e timestamp
+        # --------------------------------
+        df_smell['target'] = df_smell['is_smell'].apply(lambda x: 1 if x == 'YES' else 0)
+        df_smell['timestamp'] = pd.to_datetime(df_smell['timestamp_utc'])
+
+        # --------------------------------
+        # Agrega por dia
+        # --------------------------------
+        df_daily = df_smell.groupby(['project_id', df_smell['timestamp'].dt.date])['target'].sum().reset_index()
+        df_daily.rename(columns={'timestamp': 'ds', 'project_id': 'id', 'target': 'y'}, inplace=True)
+
+        # --------------------------------
+        # DEBUG: informações da série
+        # --------------------------------
+        print(f"[DEBUG] df_daily.shape: {df_daily.shape}")
+        print(df_daily.head(10))
+        print(df_daily['id'].value_counts())
+        print(df_daily['y'].describe())
+
+        # --------------------------------
+        # Checa se tem dados suficientes
+        # --------------------------------
+        if len(df_daily) < 2:
+            return jsonify({
+                "error": "tiny dataset: not enough data points for forecasting",
+                "rows": len(df_daily)
+            }), 400
+
+        # --------------------------------
+        # Cria o modelo StatsForecast
+        # --------------------------------
+        from statsforecast import StatsForecast
+        from statsforecast.models import AutoETS, Naive
+
+        if len(df_daily) < 5:
+            print(f"[DEBUG] tiny dataset detected ({len(df_daily)} rows), using Naive")
+            model_to_use = Naive()
+        else:
+            model_to_use = AutoETS(season_length=1)
+
+        model = StatsForecast(models=[model_to_use], freq='D')
+
+        # --------------------------------
+        #  Faz o forecast 30 dias
+        # --------------------------------
+        future_df = model.forecast(df=df_daily, h=30, id_col='id', time_col='ds', target_col='y')
+
+        # --------------------------------
+        # Gera gráfico base64 (opcional)
+        # --------------------------------
+        import os
+        import matplotlib.pyplot as plt
+        import base64
+
+        # detecta o nome da coluna de forecast (Naive ou AutoETS)
+        forecast_col = [c for c in future_df.columns if c != 'ds'][0]
+
+        # garante que os dados estão em float
+        future_df[forecast_col] = future_df[forecast_col].astype(float)
+
+        # --------------------------------
+        # Gera gráfico
+        # --------------------------------
+        fig, ax = plt.subplots(figsize=(10, 5))
+        df_daily.set_index('ds')['y'].astype(float).plot(ax=ax, marker='o', label='Histórico')
+        future_df.set_index('ds')[forecast_col].plot(ax=ax, color='red', label='Forecast')
+
+        ax.set_title(f"Forecast 30 dias - Project {project_id}")
+        ax.set_ylabel("Smells previstos")
+        ax.legend()
+
+        # --------------------------------
+        # Salva PNG na pasta logs
+        # --------------------------------
+        logs_dir = os.path.join(os.getcwd(), "logs")
+        os.makedirs(logs_dir, exist_ok=True)
+        png_path = os.path.join(logs_dir, f"forecast_project_{project_id}.png")
+        plt.savefig(png_path, format='png')
+        plt.close(fig)
+
+        # --------------------------------
+        # Gera Base64 a partir do PNG (opcional)
+        # --------------------------------
+        with open(png_path, "rb") as f:
+            img_base64 = base64.b64encode(f.read()).decode('utf-8')
+
+        # png_path e img_base64 estão prontos para usar
+
+
+        # --------------------------------
+        #  Retorna JSON com forecast e gráfico
+        # --------------------------------
+        return jsonify({
+            "project_id": project_id,
+            "forecast": future_df.to_dict(orient='records'),
+            "plot_base64": img_base64
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/smells/<smell_id>", methods=["GET"])
 def get_smell_by_id(smell_id):

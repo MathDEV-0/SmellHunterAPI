@@ -1,7 +1,7 @@
 import csv
 import os
 import json
-
+import pandas as pd
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -263,3 +263,70 @@ class SheetsRepository:
             import traceback
             traceback.print_exc()
             return None    
+    
+    def get_bad_smell_records(self, project_id: str = None) -> pd.DataFrame:
+        """
+        Retorna todos os registros da aba 'Bad_Smell' da planilha como DataFrame.
+        Se project_id for informado, filtra apenas esse projeto.
+        """
+        try:
+            # Lê explicitamente a aba 'Bad_Smell'
+            result = self.client.spreadsheets().values().get(
+                spreadsheetId=self.spreadsheet_id,
+                range="Bad_Smell!A1:Q10000"  # range explícito
+            ).execute()
+            values = result.get("values", [])
+
+            if not values or len(values) < 2:
+                return pd.DataFrame(columns=self.COLUMNS)
+
+            # Constrói DataFrame ignorando a primeira linha (header da planilha)
+            df = pd.DataFrame(values[1:], columns=self.COLUMNS)
+
+            # Filtra pelo projeto, se fornecido
+            if project_id:
+                df = df[df['project_id'] == str(project_id)]
+
+            return df
+
+        except Exception as e:
+            print(f"[SHEETS] Error getting smell records: {e}")
+            import traceback
+            traceback.print_exc()
+            return pd.DataFrame(columns=self.COLUMNS)
+
+
+    def get_event_records(self, project_id: str = None) -> pd.DataFrame:
+        """
+        Retorna todos os registros da aba 'Context' da planilha como DataFrame.
+        Se project_id for informado, filtra apenas esse projeto.
+        """
+        try:
+            context_columns = [
+                "ctx_id", "user_id", "org_id", "loc_id",
+                "timestamp", "event_type"
+            ]
+
+            # Lê explicitamente a aba 'Context'
+            result = self.client.spreadsheets().values().get(
+                spreadsheetId=self.spreadsheet_id,
+                range="Context!A1:F10000"  # range explícito
+            ).execute()
+            values = result.get("values", [])
+
+            if not values or len(values) < 2:
+                return pd.DataFrame(columns=context_columns)
+
+            df = pd.DataFrame(values[1:], columns=context_columns)
+
+            # Filtra pelo projeto se houver coluna project_id
+            if project_id and "project_id" in df.columns:
+                df = df[df['project_id'] == str(project_id)]
+
+            return df
+
+        except Exception as e:
+            print(f"[SHEETS] Error getting context records: {e}")
+            import traceback
+            traceback.print_exc()
+            return pd.DataFrame(columns=context_columns)
