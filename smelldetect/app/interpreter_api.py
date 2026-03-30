@@ -242,112 +242,197 @@ def status(ctx_id):
 @app.route("/forecast/<project_id>", methods=["GET"])
 def forecast(project_id):
     try:
-        # --------------------------------
-        # Lê os registros do Google Sheets
-        # --------------------------------
         repository = SheetsRepository()
-        df_smell = repository.get_bad_smell_records(project_id)
+        df_smell = repository.get_unified_context(project_id)
 
         if df_smell.empty:
             return jsonify({"error": f"No Bad_Smell records found for project {project_id}"}), 404
 
-        # --------------------------------
-        # Converte is_smell para 0/1 e timestamp
-        # --------------------------------
         df_smell['target'] = df_smell['is_smell'].apply(lambda x: 1 if x == 'YES' else 0)
         df_smell['timestamp'] = pd.to_datetime(df_smell['timestamp_utc'])
+        df_smell['date'] = df_smell['timestamp'].dt.date
 
-        # --------------------------------
-        # Agrega por dia
-        # --------------------------------
-        df_daily = df_smell.groupby(['project_id', df_smell['timestamp'].dt.date])['target'].sum().reset_index()
-        df_daily.rename(columns={'timestamp': 'ds', 'project_id': 'id', 'target': 'y'}, inplace=True)
+        df_daily = df_smell.groupby(['project_id', 'date']).agg({
+            'target': 'sum'
+        }).reset_index()
 
-        # --------------------------------
-        # DEBUG: informações da série
-        # --------------------------------
+        df_daily.rename(columns={
+            'project_id': 'id',
+            'date': 'ds',
+            'target': 'y'
+        }, inplace=True)
+
+        df_daily['ds'] = pd.to_datetime(df_daily['ds'])
+        df_daily['id'] = df_daily['id'].astype(str)
+
+        df_daily = df_daily.sort_values('ds')
+
+        today = pd.Timestamp.today().normalize()
+
+        full_range = pd.date_range(
+            start=df_daily['ds'].min(),
+            end=today,
+            freq='D'
+        )
+
+        df_daily = (
+            df_daily.set_index('ds')
+            .reindex(full_range)
+            .fillna(0)
+            .rename_axis('ds')
+            .reset_index()
+        )
+
+
+        df_daily['id'] = str(project_id)
+
         print(f"[DEBUG] df_daily.shape: {df_daily.shape}")
         print(df_daily.head(10))
         print(df_daily['id'].value_counts())
         print(df_daily['y'].describe())
 
-        # --------------------------------
-        # Checa se tem dados suficientes
-        # --------------------------------
         if len(df_daily) < 2:
             return jsonify({
                 "error": "tiny dataset: not enough data points for forecasting",
                 "rows": len(df_daily)
             }), 400
 
-        # --------------------------------
-        # Cria o modelo StatsForecast
-        # --------------------------------
         from statsforecast import StatsForecast
         from statsforecast.models import AutoETS, Naive
 
-        if len(df_daily) < 5:
-            print(f"[DEBUG] tiny dataset detected ({len(df_daily)} rows), using Naive")
-            model_to_use = Naive()
-        else:
-            model_to_use = AutoETS(season_length=1)
+        season_length = 7
+        print(f"[DEBUG] Trying AutoETS (season_length={season_length})")
 
-        model = StatsForecast(models=[model_to_use], freq='D')
+        model = StatsForecast(
+            models=[AutoETS(season_length=season_length)],
+            freq='D'
+        )
 
-        # --------------------------------
-        #  Faz o forecast 30 dias
-        # --------------------------------
-        future_df = model.forecast(df=df_daily, h=30, id_col='id', time_col='ds', target_col='y')
+        try:
+            future_df = model.forecast(
+                df=df_daily,
+                h=30,
+                id_col='id',
+                time_col='ds',
+                target_col='y'
+            )
+            print("[DEBUG] Model used: AutoETS")
 
-        # --------------------------------
-        # Gera gráfico base64 (opcional)
-        # --------------------------------
+        except Exception as e:
+            print(f"[DEBUG] AutoETS failed: {e}")
+            print("[DEBUG] Falling back to Naive")
+
+            model = StatsForecast(models=[Naive()], freq='D')
+
+            future_df = model.forecast(
+                df=df_daily,
+                h=7,
+                id_col='id',
+                time_col='ds',
+                target_col='y'
+            )
+
+            print("[DEBUG] Model used: Naive")
+
+        # trends
+
+        df_smell['hour'] = df_smell['timestamp'].dt.hour
+        df_smell['weekday'] = df_smell['timestamp'].dt.day_name()
+
+        most_smell_hour = (
+            df_smell.groupby('hour')['target']
+            .sum()
+            .idxmax()
+        )
+
+        most_smell_day = (
+            df_smell.groupby('weekday')['target']
+            .sum()
+            .sort_values(ascending=False)
+            .index[0]
+        )
+
+        total_smells = int(df_smell['target'].sum())
+
+        avg_per_day = float(df_daily['y'].mean())
+
+        peak_day = df_daily.loc[df_daily['y'].idxmax()]
+        peak_day_date = str(peak_day['ds'].date())
+        peak_day_value = float(peak_day['y'])
         import os
         import matplotlib.pyplot as plt
         import base64
 
-        # detecta o nome da coluna de forecast (Naive ou AutoETS)
-        forecast_col = [c for c in future_df.columns if c != 'ds'][0]
-
-        # garante que os dados estão em float
+        forecast_col = future_df.columns.difference(['ds', 'id'])[0]
         future_df[forecast_col] = future_df[forecast_col].astype(float)
 
-        # --------------------------------
-        # Gera gráfico
-        # --------------------------------
         fig, ax = plt.subplots(figsize=(10, 5))
-        df_daily.set_index('ds')['y'].astype(float).plot(ax=ax, marker='o', label='Histórico')
-        future_df.set_index('ds')[forecast_col].plot(ax=ax, color='red', label='Forecast')
 
-        ax.set_title(f"Forecast 30 dias - Project {project_id}")
-        ax.set_ylabel("Smells previstos")
+        df_daily.set_index('ds')['y'].astype(float).plot(
+            ax=ax, marker='o', label='Histórico'
+        )
+
+        future_df.set_index('ds')[forecast_col].plot(
+            ax=ax, color='red', label='Forecast'
+        )
+
+        from datetime import datetime, timedelta
+
+        today = pd.Timestamp.today().normalize()
+        
+        end_date = today + pd.Timedelta(days=30)
+
+        ax.set_xlim(df_daily['ds'].min(), end_date)
+
+        ax.set_title(f"Forecast 30 days - Project {project_id}")
+        ax.set_ylabel("Smells forecasted")
         ax.legend()
 
-        # --------------------------------
-        # Salva PNG na pasta logs
-        # --------------------------------
+        for x, y in zip(df_daily['ds'], df_daily['y']):
+            if y > 0: 
+                ax.annotate(
+                    f"{int(y)}",
+                    (x, y),
+                    textcoords="offset points",
+                    xytext=(0, 5),
+                    ha='center',
+                    fontsize=8
+                )
+        for x, y in zip(future_df['ds'], future_df[forecast_col]):
+            ax.annotate(
+                f"{int(round(y))}",
+                (x, y),
+                textcoords="offset points",
+                xytext=(0, 5),
+                ha='center',
+                fontsize=8,
+                color='red'
+            )
+            
         logs_dir = os.path.join(os.getcwd(), "logs")
         os.makedirs(logs_dir, exist_ok=True)
+
         png_path = os.path.join(logs_dir, f"forecast_project_{project_id}.png")
         plt.savefig(png_path, format='png')
         plt.close(fig)
 
-        # --------------------------------
-        # Gera Base64 a partir do PNG (opcional)
-        # --------------------------------
         with open(png_path, "rb") as f:
             img_base64 = base64.b64encode(f.read()).decode('utf-8')
 
-        # png_path e img_base64 estão prontos para usar
-
-
-        # --------------------------------
-        #  Retorna JSON com forecast e gráfico
-        # --------------------------------
         return jsonify({
             "project_id": project_id,
             "forecast": future_df.to_dict(orient='records'),
-            "plot_base64": img_base64
+            # "plot_base64": img_base64,
+            "trends": {
+                "total_smells": total_smells,
+                "average_per_day": avg_per_day,
+                "most_smell_hour": int(most_smell_hour),
+                "most_smell_day": most_smell_day,
+                "peak_day": {
+                    "date": peak_day_date,
+                    "value": peak_day_value
+                }
+            }
         })
 
     except Exception as e:

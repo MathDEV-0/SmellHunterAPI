@@ -330,3 +330,26 @@ class SheetsRepository:
             import traceback
             traceback.print_exc()
             return pd.DataFrame(columns=context_columns)
+        
+    def get_unified_context(self, project_id: str = None) -> pd.DataFrame:
+        df_smell = self.get_bad_smell_records(project_id)
+        df_ctx = self.get_event_records(project_id)
+
+        # join por ctx_id (LEFT JOIN smells -> context)
+        df = df_smell.merge(
+            df_ctx,
+            on="ctx_id",
+            how="left",
+            suffixes=("", "_ctx")
+        )
+
+        df['timestamp'] = pd.to_datetime(df['timestamp_utc'])
+
+        df['is_weekend'] = df['timestamp'].dt.weekday >= 5
+        df['day_of_week'] = df['timestamp'].dt.weekday
+        df['hour'] = df['timestamp'].dt.hour
+
+        # target
+        df['target'] = (df['is_smell'] == 'YES').astype(int)
+
+        return df
