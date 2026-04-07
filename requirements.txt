@@ -11,8 +11,17 @@ google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.0
 google-oauth2==1.0.0
 
+
+
+#Data processing and forecasting
+
 # StatsForecast / Nixtla
 statsforecast==1.6.2
+
+statsmodels==0.14.1
+scipy==1.11.4
+numpy==1.26.4
+
 
 # Utilities
 python-dotenv==1.0.0
