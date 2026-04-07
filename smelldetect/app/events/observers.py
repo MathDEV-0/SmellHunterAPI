@@ -361,3 +361,111 @@ class StatusWorker:
 
     def get(self, ctx):
         return self.results.get(ctx)
+    
+import pandas as pd
+
+class FeatureEngineeringService:
+
+    def __init__(self, repository):
+        self.repository = repository
+
+    def run(self, project_id=None):
+        print("[ETL] starting feature engineering")
+        df = self.repository.get_unified_context(project_id)
+
+        if df.empty:
+            print("[ETL] empty dataset")
+            return 0
+
+        df['timestamp'] = pd.to_datetime(df['timestamp_utc'])
+        df['target'] = df['is_smell'].apply(lambda x: 1 if x == 'YES' else 0)
+
+        df = df.sort_values("timestamp")
+
+        rows = []
+
+        for _, row in df.iterrows():
+            features = self.build_features(row, df)
+            rows.append(features)
+
+        print(f"[ETL] generated {len(rows)} rows")
+
+        self.repository.append_warehouse_rows(rows)
+
+        return len(rows)
+    
+    def build_features(self, row, df):
+
+        now = row["timestamp"]
+
+        hour_of_day = now.hour
+        day_of_week = now.weekday()
+        is_weekend = day_of_week >= 5
+
+        df_prev = df[df["timestamp"] < now]
+
+        last_smell = df_prev[
+            (df_prev["file_path"] == row["file_path"]) &
+            (df_prev["target"] == 1)
+        ].sort_values("timestamp").tail(1)
+
+        if not last_smell.empty:
+            time_since_last_smell = (
+                now - last_smell.iloc[0]["timestamp"]
+            ).total_seconds()
+        else:
+            time_since_last_smell = 0
+
+        last_24h = df[
+            (df["timestamp"] >= now - pd.Timedelta(hours=24)) &
+            (df["timestamp"] <= now)
+        ]
+
+        smell_count_24h = last_24h["target"].sum()
+
+        file_smell_history = df[
+            (df["file_path"] == row["file_path"]) &
+            (df["target"] == 1)
+        ].shape[0]
+
+        next_24h = df[
+            (df["timestamp"] > now) &
+            (df["timestamp"] <= now + pd.Timedelta(hours=24)) &
+            (df["file_path"] == row["file_path"])
+        ]
+
+        smells_next_24h = next_24h["target"].sum()
+
+        smell_debt_impact = (
+            (1 + time_since_last_smell) *
+            (1 + file_smell_history) *
+            (1 + smells_next_24h)
+        )
+
+        return [
+            row["ctx_id"],
+            row["timestamp"].isoformat(),
+            row["project_id"],
+            row["user_id"],
+            row["file_path"],
+            row["smell_type"],
+            row["target"],
+            hour_of_day,
+            day_of_week,
+            is_weekend,
+            time_since_last_smell,
+            0,  # commit placeholder
+            0,  # analysis placeholder
+            0,  # user_total_commits
+            0,  # user_smell_rate
+            0,  # user_recent_activity
+            smell_count_24h,
+            "stable",
+            0,  # file_change_frequency
+            file_smell_history,
+            0,  # file_last_modified_delta
+            0,  # project_age_days
+            0,  # team_size
+            0,  # commit_velocity
+            smell_debt_impact
+        ]

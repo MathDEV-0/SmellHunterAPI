@@ -353,3 +353,115 @@ class SheetsRepository:
         df['target'] = (df['is_smell'] == 'YES').astype(int)
 
         return df
+    #DATA WAREHOUSE FUNCTIONS   
+    def append_warehouse_rows(self, rows: list):
+
+        def normalize(value):
+
+            import numpy as np
+            import pandas as pd
+
+            if pd.isna(value):
+                return ""
+
+            if isinstance(value, (np.integer,)):
+                return int(value)
+
+            if isinstance(value, (np.floating,)):
+                return float(value)
+
+            if isinstance(value, (np.bool_,)):
+                return bool(value)
+
+            if isinstance(value, (pd.Timestamp,)):
+                return value.isoformat()
+
+            return value
+
+        try:
+            clean_rows = [
+                [normalize(v) for v in row]
+                for row in rows
+            ]
+
+            body = {
+                "values": clean_rows
+            }
+
+            self.client.spreadsheets().values().append(
+                spreadsheetId=self.spreadsheet_id,
+                range="Data_Warehouse!A1",
+                valueInputOption="RAW",
+                body=body
+            ).execute()
+
+            print(f"[SHEETS][DW] inserted {len(clean_rows)} rows")
+
+        except Exception as e:
+            print(f"[SHEETS][DW] error inserting rows: {e}")
+            import traceback
+            traceback.print_exc()
+    def clear_warehouse(self):
+        """Remove all data from the Data_Warehouse sheet except the header."""
+        try:
+            # Obtém a última linha com dados
+            sheet_metadata = self.client.spreadsheets().get(spreadsheetId=self.spreadsheet_id).execute()
+            sheets = sheet_metadata.get('sheets', '')
+            for sheet in sheets:
+                if sheet['properties']['title'] == 'Data_Warehouse':
+                    sheet_id = sheet['properties']['sheetId']
+                    result = self.client.spreadsheets().values().get(
+                        spreadsheetId=self.spreadsheet_id,
+                        range='Data_Warehouse!A:A'
+                    ).execute()
+                    values = result.get('values', [])
+                    if len(values) > 1:
+                        requests = [{
+                            "deleteRange": {
+                                "range": {
+                                    "sheetId": sheet_id,
+                                    "startRowIndex": 1,  # mantém linha 0 (cabeçalho)
+                                    "endRowIndex": len(values)
+                                },
+                                "shiftDimension": "ROWS"
+                            }
+                        }]
+                        self.client.spreadsheets().batchUpdate(
+                            spreadsheetId=self.spreadsheet_id,
+                            body={"requests": requests}
+                        ).execute()
+                        print(f"[SHEETS][DW] Cleanup completed: {len(values)-1} rows removed")
+                    else:
+                        print("[SHEETS][DW] No data to clean")
+                    return
+        except Exception as e:
+            print(f"[SHEETS][DW] Error during cleanup: {e}")
+            raise
+
+    def get_warehouse_data(self, project_id=None):
+        """Load all data from the Data_Warehouse sheet as a DataFrame.
+        If project_id is provided, filter by it."""
+        try:
+            result = self.client.spreadsheets().values().get(
+                spreadsheetId=self.spreadsheet_id,
+                range="Data_Warehouse!A:Z"
+            ).execute()
+            values = result.get('values', [])
+            if not values:
+                return pd.DataFrame()
+            headers = values[0]
+            data = values[1:]
+            df = pd.DataFrame(data, columns=headers)
+            numeric_cols = ['target', 'hour_of_day', 'day_of_week', 'time_since_last_smell',
+                            'smell_count_24h', 'file_smell_history', 'smell_debt_impact']
+            for col in numeric_cols:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+            if 'timestamp' in df.columns:
+                df['timestamp'] = pd.to_datetime(df['timestamp'])
+            if project_id:
+                df = df[df['project_id'] == str(project_id)]
+            return df
+        except Exception as e:
+            print(f"[SHEETS][DW] Error reading data: {e}")
+            return pd.DataFrame()

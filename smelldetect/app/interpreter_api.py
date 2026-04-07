@@ -12,7 +12,6 @@ import uuid
 import re
 import traceback
 import pandas as pd
-from statsforecast import StatsForecast
 from statsforecast.models import AutoETS
 import matplotlib
 matplotlib.use("Agg")
@@ -34,7 +33,7 @@ from app.events.observers import CsvSheetsObserver, LogObserver, ConsoleAuditObs
 from app.events.validation_service import ValidationService
 from app.events.observers import InterpreterWorker
 from app.repositories.sheets_repository import SheetsRepository
-from app.events.observers import PersistenceWorker
+from app.events.observers import PersistenceWorker, FeatureEngineeringService
 from app.events.observers import SheetsPersistenceObserver
 from app.events.observers import EventBusLoggerObserver
 
@@ -239,42 +238,62 @@ def status(ctx_id):
 
     return jsonify(result), 200
 
+
+import base64
+from scipy.stats import linregress
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsforecast import StatsForecast
+from statsforecast.models import (
+    CrostonClassic, CrostonOptimized, CrostonSBA,
+    ADIDA, IMAPA, TSB,
+    AutoARIMA, AutoETS, MSTL,
+    Naive, SeasonalNaive, RandomWalkWithDrift
+)
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 @app.route("/forecast/<project_id>", methods=["GET"])
 def forecast(project_id):
     try:
         repository = SheetsRepository()
-        df_smell = repository.get_unified_context(project_id)
+        df_smell = repository.get_warehouse_data(project_id)
 
         if df_smell.empty:
-            return jsonify({"error": f"No Bad_Smell records found for project {project_id}"}), 404
+            return jsonify({"error": f"Nenhum dado na Data_Warehouse para o projeto {project_id}"}), 404
 
-        df_smell['target'] = df_smell['is_smell'].apply(lambda x: 1 if x == 'YES' else 0)
-        df_smell['timestamp'] = pd.to_datetime(df_smell['timestamp_utc'])
-        df_smell['date'] = df_smell['timestamp'].dt.date
+        print("[DEBUG] Colunas disponíveis:", df_smell.columns.tolist())
+        
+        # LIMPEZA DE DADOS
+        if 'ctx_id' in df_smell.columns:
+            df_smell = df_smell.drop_duplicates(subset=['ctx_id'])
+        
+        # Converte a coluna is_smell para numérico (se === "y")
+        if 'is_smell' in df_smell.columns:
+            df_smell['is_smell'] = pd.to_numeric(df_smell['is_smell'], errors='coerce').fillna(0)
+        else:
+            return jsonify({"error": "Coluna 'is_smell' não encontrada na Data_Warehouse"}), 500
+        
+        if 'timestamp' in df_smell.columns:
+            df_smell['timestamp'] = pd.to_datetime(df_smell['timestamp'])
+            df_smell['date'] = df_smell['timestamp'].dt.date
+        else:
+            return jsonify({"error": "Coluna 'timestamp' não encontrada na Data_Warehouse"}), 500
 
+        #DAILY TIME SERIES
         df_daily = df_smell.groupby(['project_id', 'date']).agg({
-            'target': 'sum'
+            'is_smell': 'sum'
         }).reset_index()
 
         df_daily.rename(columns={
             'project_id': 'id',
             'date': 'ds',
-            'target': 'y'
+            'is_smell': 'y'
         }, inplace=True)
 
         df_daily['ds'] = pd.to_datetime(df_daily['ds'])
         df_daily['id'] = df_daily['id'].astype(str)
-
         df_daily = df_daily.sort_values('ds')
 
         today = pd.Timestamp.today().normalize()
-
-        full_range = pd.date_range(
-            start=df_daily['ds'].min(),
-            end=today,
-            freq='D'
-        )
-
+        full_range = pd.date_range(start=df_daily['ds'].min(), end=today, freq='D')
         df_daily = (
             df_daily.set_index('ds')
             .reindex(full_range)
@@ -282,155 +301,239 @@ def forecast(project_id):
             .rename_axis('ds')
             .reset_index()
         )
-
-
         df_daily['id'] = str(project_id)
 
-        print(f"[DEBUG] df_daily.shape: {df_daily.shape}")
-        print(df_daily.head(10))
-        print(df_daily['id'].value_counts())
-        print(df_daily['y'].describe())
-
-        if len(df_daily) < 2:
+        if len(df_daily) < 7:
             return jsonify({
-                "error": "tiny dataset: not enough data points for forecasting",
+                "error": "Not enough data for forecasting. At least 7 days of data are required.",
                 "rows": len(df_daily)
             }), 400
 
-        from statsforecast import StatsForecast
-        from statsforecast.models import AutoETS, Naive
+        #FORECAST
+        model_used = None
+        future_df = None
+        import numpy as np
 
-        season_length = 7
-        print(f"[DEBUG] Trying AutoETS (season_length={season_length})")
-
-        model = StatsForecast(
-            models=[AutoETS(season_length=season_length)],
-            freq='D'
-        )
-
+        historical_values = df_daily['y'].values
+        historical_std = historical_values.std()
+        if historical_std == 0:
+            historical_std = 1
+        
+        # BOOTSTRAP (add noise to create variability)
         try:
-            future_df = model.forecast(
-                df=df_daily,
-                h=30,
-                id_col='id',
-                time_col='ds',
-                target_col='y'
-            )
-            print("[DEBUG] Model used: AutoETS")
-
+            print("[DEBUG] Trying Bootstrap with noise ...")
+            np.random.seed(42)
+            n_forecast = 30
+            bootstrap_forecast = []
+            
+            for i in range(n_forecast):
+                # Pega um bloco aleatório de 7 dias
+                block_size = min(7, len(historical_values))
+                if len(historical_values) > block_size:
+                    start_idx = np.random.randint(0, len(historical_values) - block_size)
+                else:
+                    start_idx = 0
+                sampled_value = historical_values[start_idx:start_idx+block_size].mean()
+                sampled_value += np.random.normal(0, historical_std * 0.3)
+                bootstrap_forecast.append(max(0, sampled_value))
+            
+            future_df = pd.DataFrame({
+                'ds': pd.date_range(start=df_daily['ds'].max() + pd.Timedelta(days=1), periods=n_forecast, freq='D'),
+                'id': str(project_id),
+                'bootstrap': bootstrap_forecast
+            })
+            
+            model_used = "Bootstrap with Noise"
+            forecast_col = 'bootstrap'
+            
+            future_df['lo-80'] = np.maximum(0, np.array(bootstrap_forecast) - historical_std * 0.8)
+            future_df['hi-80'] = np.array(bootstrap_forecast) + historical_std * 0.8
+            future_df['lo-95'] = np.maximum(0, np.array(bootstrap_forecast) - historical_std * 1.5)
+            future_df['hi-95'] = np.array(bootstrap_forecast) + historical_std * 1.5
+            
+            print(f"[DEBUG] Bootstrap OK - STD historical: {historical_std:.2f}")
+            
         except Exception as e:
-            print(f"[DEBUG] AutoETS failed: {e}")
-            print("[DEBUG] Falling back to Naive")
+            print(f"[DEBUG] Bootstrap failed: {e}")
+        
+        # Croston classic (stable to series with many zeros)
+        if future_df is None:
+            try:
+                print("[DEBUG] Trying CrostonClassic...")
+                model = StatsForecast(models=[CrostonClassic()], freq='D', n_jobs=-1)
+                future_df = model.forecast(df=df_daily, h=30, id_col='id', time_col='ds', target_col='y')
+                model_used = "CrostonClassic"
+                forecast_col = future_df.columns.difference(['ds', 'id'])[0]
+                
+                future_df['lo-80'] = future_df[forecast_col] * 0.5
+                future_df['hi-80'] = future_df[forecast_col] * 1.5
+                future_df['lo-95'] = future_df[forecast_col] * 0.2
+                future_df['hi-95'] = future_df[forecast_col] * 1.8
+                future_df.rename(columns={forecast_col: 'croston'}, inplace=True)
+                
+                print("[DEBUG] Model used: CrostonClassic")
+                
+            except Exception as e:
+                print(f"[DEBUG] CrostonClassic failed: {e}")
+                future_df = None
+        
+        # Autoarima (good for general forecasting, fail in short series )
+        if future_df is None:
+            try:
+                print("[DEBUG] Trying AutoARIMA...")
+                model = StatsForecast(models=[AutoARIMA(season_length=7)], freq='D', n_jobs=-1)
+                future_df = model.forecast(df=df_daily, h=30, id_col='id', time_col='ds', target_col='y')
+                model_used = "AutoARIMA"
+                forecast_col = future_df.columns.difference(['ds', 'id'])[0]
+                
+                future_df['lo-80'] = future_df[forecast_col] * 0.7
+                future_df['hi-80'] = future_df[forecast_col] * 1.3
+                future_df['lo-95'] = future_df[forecast_col] * 0.5
+                future_df['hi-95'] = future_df[forecast_col] * 1.5
+                future_df.rename(columns={forecast_col: 'autoarima'}, inplace=True)
+                
+                print("[DEBUG] Modelo utilizado: AutoARIMA")
+                
+            except Exception as e:
+                print(f"[DEBUG] AutoARIMA failed: {e}")
+                return jsonify({"error": "Failed to generate forecast"}), 500
 
-            model = StatsForecast(models=[Naive()], freq='D')
+        future_df['ds'] = pd.to_datetime(future_df['ds'])
+        
+        forecast_value_col = [c for c in future_df.columns if c not in ['ds', 'id', 'lo-80', 'hi-80', 'lo-95', 'hi-95']]
+        if not forecast_value_col:
+            return jsonify({"error": "No forecast column found"}), 500
+        forecast_value_col = forecast_value_col[0]
+        
+        print(f"[DEBUG] Final model used: {model_used}")
+        print(f"[DEBUG] Forecast column: {forecast_value_col}")
+        print(f"[DEBUG] First 5 predicted values: {future_df[forecast_value_col].head(5).tolist()}")
 
-            future_df = model.forecast(
-                df=df_daily,
-                h=7,
-                id_col='id',
-                time_col='ds',
-                target_col='y'
-            )
+        # Advanced trends analysis
+        y_vals = df_daily['y'].values.astype(float)
 
-            print("[DEBUG] Model used: Naive")
+        # Linear trend
+        if len(y_vals) >= 7:
+            slope, _, _, p_value, _ = linregress(range(len(y_vals)), y_vals)
+            if slope > 0.05 and p_value < 0.1:
+                direction = "upward"
+            elif slope < -0.05 and p_value < 0.1:
+                direction = "downward"
+            else:
+                direction = "stable"
+        else:
+            direction = "not enough data"
 
-        # trends
+        # Week-over-week variation
+        last_week = y_vals[-7:].mean() if len(y_vals) >= 7 else 0
+        prev_week = y_vals[-14:-7].mean() if len(y_vals) >= 14 else 0
+        wow_change = ((last_week - prev_week) / prev_week) if prev_week > 0 else None
 
-        df_smell['hour'] = df_smell['timestamp'].dt.hour
-        df_smell['weekday'] = df_smell['timestamp'].dt.day_name()
+        seasonality_strength = None
+        if len(df_daily) >= 14:
+            try:
+                import numpy as np
+                df_ts = df_daily.set_index('ds').asfreq('D')
+                df_ts['y'] = df_ts['y'].fillna(0)
+                decomp = seasonal_decompose(df_ts['y'], model='additive', period=7, extrapolate_trend='freq')
+                seasonal_var = np.var(decomp.seasonal)
+                residual_var = np.var(decomp.resid)
+                if (seasonal_var + residual_var) > 0:
+                    seasonality_strength = 1 - (residual_var / (seasonal_var + residual_var))
+            except:
+                pass
 
-        most_smell_hour = (
-            df_smell.groupby('hour')['target']
-            .sum()
-            .idxmax()
-        )
+        df_smell_with_smell = df_smell[df_smell['is_smell'] == 1]
+        smell_type_counts = df_smell_with_smell['smell_type'].value_counts().to_dict() if 'smell_type' in df_smell.columns else {}
 
-        most_smell_day = (
-            df_smell.groupby('weekday')['target']
-            .sum()
-            .sort_values(ascending=False)
-            .index[0]
-        )
+        top_files = df_smell_with_smell.groupby('file_path').size().nlargest(5).to_dict() if 'file_path' in df_smell.columns else {}
+        top_users = df_smell_with_smell.groupby('user_id').size().nlargest(5).to_dict() if 'user_id' in df_smell.columns else {}
 
-        total_smells = int(df_smell['target'].sum())
+        # Debt Impact
+        total_debt_impact = float(df_smell['smell_debt_impact'].sum()) if 'smell_debt_impact' in df_smell.columns else 0
+        avg_debt_impact = float(df_smell['smell_debt_impact'].mean()) if 'smell_debt_impact' in df_smell.columns else 0
 
+        total_smells = int(df_smell['is_smell'].sum())
         avg_per_day = float(df_daily['y'].mean())
-
         peak_day = df_daily.loc[df_daily['y'].idxmax()]
         peak_day_date = str(peak_day['ds'].date())
         peak_day_value = float(peak_day['y'])
-        import os
-        import matplotlib.pyplot as plt
-        import base64
 
-        forecast_col = future_df.columns.difference(['ds', 'id'])[0]
-        future_df[forecast_col] = future_df[forecast_col].astype(float)
+        most_smell_hour = int(df_smell.groupby('hour_of_day')['is_smell'].sum().idxmax()) if 'hour_of_day' in df_smell.columns else 0
+        weekday_map = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday'}
+        if 'day_of_week' in df_smell.columns:
+            most_smell_weekday_num = int(df_smell.groupby('day_of_week')['is_smell'].sum().idxmax())
+            most_smell_day = weekday_map.get(most_smell_weekday_num, 'Unknown')
+        else:
+            most_smell_day = 'Unknown'
 
-        fig, ax = plt.subplots(figsize=(10, 5))
-
-        df_daily.set_index('ds')['y'].astype(float).plot(
-            ax=ax, marker='o', label='Histórico'
-        )
-
-        future_df.set_index('ds')[forecast_col].plot(
-            ax=ax, color='red', label='Forecast'
-        )
-
-        from datetime import datetime, timedelta
-
-        today = pd.Timestamp.today().normalize()
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(df_daily['ds'], df_daily['y'], marker='o', label='Historical', color='blue', linewidth=2, markersize=4)
+        ax.plot(future_df['ds'], future_df[forecast_value_col], marker='o', label=f'Forecasting ({model_used})', color='red', linewidth=2, markersize=4)
+        ax.fill_between(future_df['ds'], future_df['lo-80'], future_df['hi-80'], color='red', alpha=0.2, label='80% Interval')
+        ax.set_title(f'Smell Forecast - Project {project_id}', fontsize=14, fontweight='bold')
+        ax.set_xlabel('Time', fontsize=12)
+        ax.set_ylabel('Number of Smells', fontsize=12)
+        ax.legend(fontsize=10)
+        ax.grid(True, linestyle='--', alpha=0.6)
         
-        end_date = today + pd.Timedelta(days=30)
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
 
-        ax.set_xlim(df_daily['ds'].min(), end_date)
-
-        ax.set_title(f"Forecast 30 days - Project {project_id}")
-        ax.set_ylabel("Smells forecasted")
-        ax.legend()
-
-        for x, y in zip(df_daily['ds'], df_daily['y']):
-            if y > 0: 
-                ax.annotate(
-                    f"{int(y)}",
-                    (x, y),
-                    textcoords="offset points",
-                    xytext=(0, 5),
-                    ha='center',
-                    fontsize=8
-                )
-        for x, y in zip(future_df['ds'], future_df[forecast_col]):
-            ax.annotate(
-                f"{int(round(y))}",
-                (x, y),
-                textcoords="offset points",
-                xytext=(0, 5),
-                ha='center',
-                fontsize=8,
-                color='red'
-            )
-            
         logs_dir = os.path.join(os.getcwd(), "logs")
         os.makedirs(logs_dir, exist_ok=True)
-
         png_path = os.path.join(logs_dir, f"forecast_project_{project_id}.png")
-        plt.savefig(png_path, format='png')
+        plt.savefig(png_path, format='png', dpi=100, bbox_inches='tight')
         plt.close(fig)
 
         with open(png_path, "rb") as f:
             img_base64 = base64.b64encode(f.read()).decode('utf-8')
 
+        trends = {
+            "total_smells": total_smells,
+            "average_per_day": avg_per_day,
+            "most_smell_hour": most_smell_hour,
+            "most_smell_day": most_smell_day,
+            "peak_day": {
+                "date": peak_day_date,
+                "value": peak_day_value
+            },
+            "direction": direction,
+            "seasonality_strength": seasonality_strength,
+            "debt_impact": {      
+                "total": total_debt_impact,
+                "average": avg_debt_impact
+            },
+            "smell_type_distribution": smell_type_counts,
+            "top_files": top_files,
+            "top_users": top_users
+        }
+
         return jsonify({
             "project_id": project_id,
-            "forecast": future_df.to_dict(orient='records'),
-            # "plot_base64": img_base64,
+            "model_used": model_used,
+            "forecast": future_df[[
+                'ds', forecast_value_col, 'lo-80', 'hi-80', 'lo-95', 'hi-95'
+            ]].to_dict(orient='records'),
+            #"plot_base64": img_base64,
             "trends": {
                 "total_smells": total_smells,
                 "average_per_day": avg_per_day,
-                "most_smell_hour": int(most_smell_hour),
+                "most_smell_hour": most_smell_hour,
                 "most_smell_day": most_smell_day,
                 "peak_day": {
                     "date": peak_day_date,
                     "value": peak_day_value
+                },
+                "direction": direction,
+                "wow_change": wow_change,
+                "seasonality_strength": seasonality_strength,
+                "smell_type_distribution": smell_type_counts,
+                "top_files": top_files,
+                "top_users": top_users,
+                "debt_impact": {
+                    "total": total_debt_impact,
+                    "average": avg_debt_impact
                 }
             }
         })
@@ -440,6 +543,23 @@ def forecast(project_id):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+feature_service = FeatureEngineeringService(repository)
+
+@app.route("/etl/run", methods=["POST"])
+def run_etl():
+    try:
+        repository = SheetsRepository()
+
+        repository.clear_warehouse()
+        processed = feature_service.run()
+        return {
+            "status": "ok",
+            "rows_processed": processed
+        }, 200
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    
 @app.route("/smells/<smell_id>", methods=["GET"])
 def get_smell_by_id(smell_id):
     """
