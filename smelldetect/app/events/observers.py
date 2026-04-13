@@ -398,6 +398,7 @@ class FeatureEngineeringService:
 
         now = row["timestamp"]
 
+        #Time feats
         hour_of_day = now.hour
         day_of_week = now.weekday()
         is_weekend = day_of_week >= 5
@@ -435,37 +436,89 @@ class FeatureEngineeringService:
         ]
 
         smells_next_24h = next_24h["target"].sum()
+        #User feats
+        user_data = df[df["user_id"] == row["user_id"]]
 
+        user_total_commits = len(user_data)
+
+        user_smell_rate = (
+            user_data["target"].sum() / len(user_data)
+            if len(user_data) > 0 else None
+        )
+
+        user_recent_activity = df[
+            (df["user_id"] == row["user_id"]) &
+            (df["timestamp"] >= now - pd.Timedelta(hours=24))
+        ].shape[0]
+        
+        #File feats
+        file_data = df[df["file_path"] == row["file_path"]]
+
+        file_smell_history = file_data[
+            file_data["target"] == 1
+        ].shape[0]
+
+        file_change_frequency = file_data.shape[0]
+
+        last_mod = file_data.sort_values("timestamp").tail(1)
+
+        file_last_modified_delta = (
+            (now - last_mod.iloc[0]["timestamp"]).total_seconds()
+            if not last_mod.empty else None
+        )
+
+        #Project/Team feats
+        # ---------- PROJECT ----------
+        project_data = df[df["project_id"] == row["project_id"]]
+
+        team_size = project_data["user_id"].nunique()
+
+        project_age_days = (
+            now - project_data["timestamp"].min()
+        ).days
+
+        time_span = (
+            project_data["timestamp"].max() -
+            project_data["timestamp"].min()
+        ).total_seconds() / 3600
+
+        commit_velocity = (
+            len(project_data) / time_span if time_span > 0 else None
+        )
+
+        #Quality of life feature: a combined "smell debt impact" score that considers recency, frequency, and future risk
         smell_debt_impact = (
             (1 + time_since_last_smell) *
             (1 + file_smell_history) *
             (1 + smells_next_24h)
         )
 
-        return [
-            row["ctx_id"],
-            row["timestamp"].isoformat(),
-            row["project_id"],
-            row["user_id"],
-            row["file_path"],
-            row["smell_type"],
-            row["target"],
-            hour_of_day,
-            day_of_week,
-            is_weekend,
-            time_since_last_smell,
-            0,  # commit placeholder
-            0,  # analysis placeholder
-            0,  # user_total_commits
-            0,  # user_smell_rate
-            0,  # user_recent_activity
-            smell_count_24h,
-            "stable",
-            0,  # file_change_frequency
-            file_smell_history,
-            0,  # file_last_modified_delta
-            0,  # project_age_days
-            0,  # team_size
-            0,  # commit_velocity
-            smell_debt_impact
-        ]
+
+
+        return {
+            "ctx_id": row["ctx_id"],
+            "timestamp": row["timestamp"].isoformat(),
+            "project_id": row["project_id"],
+            "user_id": row["user_id"],
+            "file_path": row["file_path"],
+            "smell_type": row["smell_type"],
+            "is_smell": row["target"],
+            "hour_of_day": hour_of_day,
+            "day_of_week": day_of_week,
+            "is_weekend": is_weekend,
+            "time_since_last_smell": time_since_last_smell,
+            "time_since_last_commit": None,
+            "time_since_last_analysis": time_since_last_smell,
+            "user_total_commits": user_total_commits,
+            "user_smell_rate": user_smell_rate,
+            "user_recent_activity": user_recent_activity,
+            "smell_count_24h": smell_count_24h,
+            "smell_trend": "stable",
+            "file_change_frequency": file_change_frequency,
+            "file_smell_history": file_smell_history,
+            "file_last_modified_delta": file_last_modified_delta,
+            "project_age_days": project_age_days,
+            "team_size": team_size,
+            "commit_velocity": commit_velocity,
+            "smell_debt_impact": smell_debt_impact
+        }

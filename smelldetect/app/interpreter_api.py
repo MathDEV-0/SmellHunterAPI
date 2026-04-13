@@ -257,9 +257,9 @@ def forecast(project_id):
         df_smell = repository.get_warehouse_data(project_id)
 
         if df_smell.empty:
-            return jsonify({"error": f"Nenhum dado na Data_Warehouse para o projeto {project_id}"}), 404
+            return jsonify({"error": f"No data found for project {project_id}"}), 404
 
-        print("[DEBUG] Colunas disponíveis:", df_smell.columns.tolist())
+        print("[DEBUG] Rows available:", df_smell.columns.tolist())
         
         # LIMPEZA DE DADOS
         if 'ctx_id' in df_smell.columns:
@@ -269,13 +269,13 @@ def forecast(project_id):
         if 'is_smell' in df_smell.columns:
             df_smell['is_smell'] = pd.to_numeric(df_smell['is_smell'], errors='coerce').fillna(0)
         else:
-            return jsonify({"error": "Coluna 'is_smell' não encontrada na Data_Warehouse"}), 500
+            return jsonify({"error": "Row 'is_smell' not found in Data_Warehouse"}), 500
         
         if 'timestamp' in df_smell.columns:
             df_smell['timestamp'] = pd.to_datetime(df_smell['timestamp'])
             df_smell['date'] = df_smell['timestamp'].dt.date
         else:
-            return jsonify({"error": "Coluna 'timestamp' não encontrada na Data_Warehouse"}), 500
+            return jsonify({"error": "Row 'timestamp' not found in Data_Warehouse"}), 500
 
         #DAILY TIME SERIES
         df_daily = df_smell.groupby(['project_id', 'date']).agg({
@@ -543,6 +543,19 @@ def forecast(project_id):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+from app.services.forecasting_service import ForecastService
+@app.route("/forecast2/<project_id>", methods=["GET"])
+def forecast2(project_id):
+
+    service = ForecastService(SheetsRepository())
+
+    try:
+        result = service.forecast_project(project_id)
+        return jsonify(result)
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    
 feature_service = FeatureEngineeringService(repository)
 
 @app.route("/etl/run", methods=["POST"])

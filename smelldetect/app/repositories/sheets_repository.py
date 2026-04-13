@@ -17,6 +17,35 @@ class SheetsRepository:
     FILE = "sheets_smells.csv"
     SHEET_NAME = "Bad_Smell"
 
+    WAREHOUSE_COLUMNS = [
+            "ctx_id",
+            "timestamp",
+            "project_id",
+            "user_id",
+            "file_path",
+            "smell_type",
+            "is_smell",
+            "hour_of_day",
+            "day_of_week",
+            "is_weekend",
+            "time_since_last_smell",
+            "time_since_last_commit",
+            "time_since_last_analysis",
+            "user_total_commits",
+            "user_smell_rate",
+            "user_recent_activity",
+            "smell_count_24h",
+            "smell_trend",
+            "file_change_frequency",
+            "file_smell_history",
+            "file_last_modified_delta",
+            "project_age_days",
+            "team_size",
+            "commit_velocity",
+            "smell_debt_impact"
+            ]
+
+
     COLUMNS = [
         "id",
         "timestamp_utc",
@@ -36,6 +65,7 @@ class SheetsRepository:
         "ctx_id",
         "treatment"
     ]
+
 
     def __init__(self):
 
@@ -355,9 +385,9 @@ class SheetsRepository:
         return df
     #DATA WAREHOUSE FUNCTIONS   
     def append_warehouse_rows(self, rows: list):
-
+        
         def normalize(value):
-
+            
             import numpy as np
             import pandas as pd
 
@@ -380,7 +410,7 @@ class SheetsRepository:
 
         try:
             clean_rows = [
-                [normalize(v) for v in row]
+                [normalize(row.get(col)) for col in self.WAREHOUSE_COLUMNS]
                 for row in rows
             ]
 
@@ -401,6 +431,7 @@ class SheetsRepository:
             print(f"[SHEETS][DW] error inserting rows: {e}")
             import traceback
             traceback.print_exc()
+
     def clear_warehouse(self):
         """Remove all data from the Data_Warehouse sheet except the header."""
         try:

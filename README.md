@@ -41,6 +41,12 @@ Event-driven API for detecting code smells using metrics analysis and a Domain S
     - [Physical Context View](#physical-context-view)
     - [Smell Details View](#smell-details-view)
 
+12. [Feature Engineering & Forecasting](#feature-engineering--forecasting)
+
+- [Overview](#overview-features)
+- [Feature Definitions](#feature-definitions)
+- [Forecasting: Project-level](#forecasting-project-level)
+
 ## Research Motivation
 
 ### _Problem_
@@ -580,3 +586,383 @@ This view helps developers understand why a smell was detected and provides insi
 ![Smell Details View](figures/tela5_artigo.png)
 ![Smell Details View](figures/tela6_artigo.png)
 ![Smell Details View](figures/tela7_artigo.png)
+
+## Feature Engineering & Forecasting
+
+=================================
+
+### Overview (Features)
+
+---
+
+SmellHunter goes beyond static detection by incorporating **temporal and contextual features** extracted from development activity.
+
+These features are used for:
+
+- Context-aware smell analysis
+- Historical behavior tracking
+- Forecasting future smell occurrences
+
+The dataset is structured as a time-series of development events, where each row represents a contextual snapshot of a smell evaluation.
+
+## Feature Definitions (Computation Details)
+
+---
+
+This section describes **how each feature is computed internally**, including aggregation logic, mathematical definitions, and preprocessing transformations.
+
+---
+
+## Data Preparation
+
+Before feature extraction, the following preprocessing steps are applied:
+
+### Duplicate Removal
+
+Rows are deduplicated based on `ctx_id`:
+
+df = df.drop_duplicates(subset=['ctx_id'])
+
+### Normalization of `is_smell`
+
+The `is_smell` field is converted to numeric and invalid values are handled:
+
+is_smell = to_numeric(is_smell, errors="coerce").fillna(0)
+
+This ensures:
+
+is_smelli∈{0,1}is_smell_i \in \{0, 1\}is_smelli​∈{0,1}
+
+### Timestamp Processing
+
+timestamp → datetime\
+date = timestamp.date()
+
+This enables daily aggregation.
+
+---
+
+## Core Target Variable
+
+### Daily Smell Count (`y`)
+
+This is the **main variable used for forecasting**.
+
+yd=∑i∈dis*smelliy_d = \sum*{i \in d} is_smell_iyd​=i∈d∑​is_smelli​
+
+Where:
+
+- ddd = a specific day
+- is_smelli∈{0,1}is_smell_i \in \{0,1\}is_smelli​∈{0,1}
+
+Implementation:
+
+df.groupby(['project_id', 'date'])['is_smell'].sum()
+
+---
+
+## Time Series Construction
+
+### Aggregation
+
+Data is grouped by:
+
+- `project_id`
+- `date`
+
+Result:
+
+(project_id,date)→yd(project_id, date) \rightarrow y_d(project_id,date)→yd​
+
+---
+
+### Filling Missing Dates (Critical)
+
+A continuous daily time series is enforced:
+
+full_range = date_range(min_date, today)\
+df = df.reindex(full_range).fillna(0)
+
+Meaning:
+
+yd=0if no data exists for day dy_d = 0 \quad \text{if no data exists for day } dyd​=0if no data exists for day d
+
+This avoids temporal bias and ensures consistency for forecasting models.
+
+---
+
+## Forecasting Features
+
+### Bootstrap-Based Estimation
+
+Each forecast value is computed as:
+
+y^=μwindow+ϵ\hat{y} = \mu\_{window} + \epsilony^​=μwindow​+ϵ
+
+Where:
+
+- μwindow\mu\_{window}μwindow​ = mean of a sampled historical window (size ≤ 7 days)
+- ϵ∼N(0,0.3⋅σ)\epsilon \sim \mathcal{N}(0, 0.3 \cdot \sigma)ϵ∼N(0,0.3⋅σ)
+
+---
+
+### Variance
+
+σ=std(yhistorical)\sigma = std(y\_{historical})σ=std(yhistorical​)
+
+Used to model uncertainty in predictions.
+
+---
+
+### Confidence Intervals
+
+#### 80% Interval
+
+[y^-0.8σ,y^+0.8σ][\hat{y} - 0.8\sigma,\ \hat{y} + 0.8\sigma][y^​-0.8σ, y^​+0.8σ]
+
+#### 95% Interval
+
+[y^-1.5σ,y^+1.5σ][\hat{y} - 1.5\sigma,\ \hat{y} + 1.5\sigma][y^​-1.5σ, y^​+1.5σ]
+
+---
+
+## Trend Features
+
+### Linear Trend (Slope)
+
+Computed using linear regression:
+
+y=ax+by = ax + by=ax+b
+
+Where:
+
+- aaa = slope
+
+Interpretation:
+
+| Condition                                     | Trend    |
+| --------------------------------------------- | -------- |
+| a>0.05a > 0.05a>0.05 and p<0.1p < 0.1p<0.1    | upward   |
+| a<-0.05a < -0.05a<-0.05 and p<0.1p < 0.1p<0.1 | downward |
+| otherwise                                     | stable   |
+
+---
+
+### Average Smells per Day
+
+$$
+avg = \frac{\sum y_d}{N}
+$$
+
+Where:
+
+- $N$ = number of days
+
+---
+
+### Total Smells
+
+$$
+total = \sum is\_smell
+$$
+
+---
+
+### Peak Day
+
+$$
+peak = \max(y_d)
+$$
+
+---
+
+### Smell Type Distribution
+
+Computed only for actual smells:
+
+$$
+P(type) = count(type \mid is\_smell = 1)
+$$
+
+---
+
+### Debt Impact
+
+If the feature `smell_debt_impact` exists:
+
+$$
+total\_debt = \sum smell\_debt\_impact
+$$
+
+$$
+avg\_debt = mean(smell\_debt\_impact)
+$$
+
+---
+
+## Important Modeling Assumptions
+
+- Missing days are treated as **zero smells**, not missing data
+- Smells are modeled as **discrete count events**
+- Time series is **daily and univariate**
+- Forecast horizon is **30 days**
+
+---
+
+## Forecasting: Project-level
+
+---
+
+This module provides **time-series forecasting of code smells at the project level**, based on historical detection data.
+
+The forecasting pipeline operates per `project_id`, transforming raw event data into a daily time series and predicting future smell occurrences.
+
+---
+
+### Input Data
+
+The model consumes data from the warehouse with the following relevant fields:
+
+- `project_id`
+- `timestamp`
+- `is_smell`
+- `smell_type` (for distribution analysis)
+- `smell_debt_impact` (optional)
+
+---
+
+### Processing Pipeline
+
+#### 1\. Data Filtering
+
+Only records associated with the requested `project_id` are used.
+
+#### 2\. Deduplication
+
+Events are deduplicated using:
+
+df.drop_duplicates(subset=['ctx_id'])
+
+---
+
+#### 3\. Time Aggregation
+
+Events are aggregated into a daily time series:
+
+$$
+y_d = \sum_{i \in d} is\_smell_i
+$$
+
+---
+
+#### 4\. Time Series Normalization
+
+- Missing dates are filled with zero values
+- Data is sorted chronologically
+- Series becomes continuous and uniform (daily frequency)
+
+---
+
+### Forecast Output
+
+The model predicts smell occurrences for the next **30 days**:
+
+$$
+\{\hat{y}_{t+1}, \hat{y}_{t+2}, \ldots, \hat{y}_{t+30}\}
+$$
+
+Each prediction includes:
+
+- `yhat`: expected number of smells
+- `lo-80`, `hi-80`: 80% confidence interval
+- `lo-95`, `hi-95`: 95% confidence interval
+
+---
+
+### Model Selection Strategy
+
+The system applies a **fallback strategy**, selecting the first successful model:
+
+#### 1\. Bootstrap (Default)
+
+- Samples historical windows (≤ 7 days)
+- Adds Gaussian noise
+- Does not assume strong statistical structure
+- Works well with small or irregular datasets
+
+---
+
+#### 2\. Croston
+
+- Designed for **intermittent time series**
+- Suitable when smells occur sparsely over time
+
+---
+
+#### 3\. AutoARIMA
+
+- Captures **trend and seasonality**
+- Uses weekly seasonality:
+
+$$
+season\_length = 7
+$$
+
+---
+
+### Trend Analysis
+
+In addition to forecasting, the system computes descriptive trends:
+
+- **Trend direction** (upward, downward, stable) via linear regression
+- **Average smells per day**
+- **Total smells**
+- **Peak day** (maximum daily value)
+- **Smell type distribution**
+- **Technical debt impact** (if available)
+
+---
+
+### API Usage
+
+#### Endpoint
+
+```
+GET /forecast/<project_id>
+```
+
+#### Response Structure
+
+```
+{\
+  "model_used": "Bootstrap",\
+  "forecast": [\
+    {\
+      "ds": "2026-04-14",\
+      "yhat": 3.2,\
+      "lo-80": 1.5,\
+      "hi-80": 4.8,\
+      "lo-95": 0.5,\
+      "hi-95": 6.2\
+    }\
+  ],\
+  "trends": {\
+    "total_smells": 120,\
+    "average_per_day": 3.5,\
+    "peak_day": {\
+      "date": "2026-03-20",\
+      "value": 10\
+    },\
+    "direction": "upward"\
+  }\
+}
+```
+
+---
+
+### Key Assumptions
+
+- Forecast is **project-specific (no cross-project learning)**
+- Data is treated as a **univariate time series**
+- Smell occurrences are modeled as **count processes**
+- Missing observations imply **zero events**
