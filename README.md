@@ -42,10 +42,9 @@ Event-driven API for detecting code smells using metrics analysis and a Domain S
     - [Smell Details View](#smell-details-view)
 
 12. [Feature Engineering & Forecasting](#feature-engineering--forecasting)
-
-- [Overview](#overview-features)
-- [Feature Definitions](#feature-definitions)
-- [Forecasting: Project-level](#forecasting-project-level)
+      - [Overview](#overview-features)
+      - [Feature Definitions](#feature-definitions)
+      - [Forecasting: Project-level](#forecasting-project-level)
 
 ## Research Motivation
 
@@ -589,8 +588,6 @@ This view helps developers understand why a smell was detected and provides insi
 
 ## Feature Engineering & Forecasting
 
-=================================
-
 ### Overview (Features)
 
 ---
@@ -605,7 +602,7 @@ These features are used for:
 
 The dataset is structured as a time-series of development events, where each row represents a contextual snapshot of a smell evaluation.
 
-## Feature Definitions (Computation Details)
+### Feature Definitions
 
 ---
 
@@ -631,7 +628,9 @@ is_smell = to_numeric(is_smell, errors="coerce").fillna(0)
 
 This ensures:
 
-is_smelli∈{0,1}is_smell_i \in \{0, 1\}is_smelli​∈{0,1}
+$$
+is\_smell_i \in \{0, 1\}
+$$
 
 ### Timestamp Processing
 
@@ -648,17 +647,19 @@ This enables daily aggregation.
 
 This is the **main variable used for forecasting**.
 
-yd=∑i∈dis*smelliy_d = \sum*{i \in d} is_smell_iyd​=i∈d∑​is_smelli​
+$$
+y_d = \sum_{i \in d} is\_smell_i
+$$
 
 Where:
 
-- ddd = a specific day
-- is_smelli∈{0,1}is_smell_i \in \{0,1\}is_smelli​∈{0,1}
+- $d$ = a specific day  
+- $is\_smell_i \in \{0,1\}$
 
 Implementation:
-
+```
 df.groupby(['project_id', 'date'])['is_smell'].sum()
-
+```
 ---
 
 ## Time Series Construction
@@ -672,7 +673,9 @@ Data is grouped by:
 
 Result:
 
-(project_id,date)→yd(project_id, date) \rightarrow y_d(project_id,date)→yd​
+$$
+(project\_id, date) \rightarrow y_d
+$$
 
 ---
 
@@ -685,7 +688,9 @@ df = df.reindex(full_range).fillna(0)
 
 Meaning:
 
-yd=0if no data exists for day dy_d = 0 \quad \text{if no data exists for day } dyd​=0if no data exists for day d
+$$
+y_d = 0 \quad \text{if no data exists for day } d
+$$
 
 This avoids temporal bias and ensures consistency for forecasting models.
 
@@ -697,18 +702,25 @@ This avoids temporal bias and ensures consistency for forecasting models.
 
 Each forecast value is computed as:
 
-y^=μwindow+ϵ\hat{y} = \mu\_{window} + \epsilony^​=μwindow​+ϵ
+$$
+\hat{y} = \mu_{window} + \epsilon
+$$
+
+$$
+\epsilon \sim \mathcal{N}(0, 0.3 \cdot \sigma)
+$$
 
 Where:
 
-- μwindow\mu\_{window}μwindow​ = mean of a sampled historical window (size ≤ 7 days)
-- ϵ∼N(0,0.3⋅σ)\epsilon \sim \mathcal{N}(0, 0.3 \cdot \sigma)ϵ∼N(0,0.3⋅σ)
+- $\mu_{window}$ = mean of a sampled historical window (size ≤ 7 days)
+- $\epsilon$ = Gaussian noise
+
 
 ---
 
-### Variance
-
-σ=std(yhistorical)\sigma = std(y\_{historical})σ=std(yhistorical​)
+$$
+\sigma = std(y_{historical})
+$$
 
 Used to model uncertainty in predictions.
 
@@ -718,11 +730,15 @@ Used to model uncertainty in predictions.
 
 #### 80% Interval
 
-[y^-0.8σ,y^+0.8σ][\hat{y} - 0.8\sigma,\ \hat{y} + 0.8\sigma][y^​-0.8σ, y^​+0.8σ]
+$$
+[\hat{y} - 0.8\sigma,\ \hat{y} + 0.8\sigma]
+$$
 
 #### 95% Interval
 
-[y^-1.5σ,y^+1.5σ][\hat{y} - 1.5\sigma,\ \hat{y} + 1.5\sigma][y^​-1.5σ, y^​+1.5σ]
+$$
+[\hat{y} - 1.5\sigma,\ \hat{y} + 1.5\sigma]
+$$
 
 ---
 
@@ -732,11 +748,13 @@ Used to model uncertainty in predictions.
 
 Computed using linear regression:
 
-y=ax+by = ax + by=ax+b
+$$
+y = ax + b
+$$
 
 Where:
 
-- aaa = slope
+- $a$ = slope
 
 Interpretation:
 
@@ -809,7 +827,7 @@ $$
 
 ---
 
-## Forecasting: Project-level
+### Forecasting: Project-level
 
 ---
 
