@@ -489,7 +489,7 @@ class SheetsRepository:
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
             if 'timestamp' in df.columns:
-                df['timestamp'] = pd.to_datetime(df['timestamp'])
+                df['timestamp'] = pd.to_datetime(df['timestamp'],format="mixed",errors="coerce",utc=True)
             if project_id:
                 df = df[df['project_id'] == str(project_id)]
             return df
