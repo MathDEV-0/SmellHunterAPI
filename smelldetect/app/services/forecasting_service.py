@@ -100,7 +100,7 @@ class ForecastService:
         # NORMAL MODE
         # -------------------------
         future_df, model_used = self._forecast(df_daily)
-        trends = self._compute_trends(df, df_daily)
+        trends = self._compute_full_trends(df, df_daily)
 
         forecast_col = "yhat"
 
