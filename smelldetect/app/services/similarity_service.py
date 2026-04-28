@@ -11,7 +11,7 @@ class SimilarityService:
     # -------------------------
     # PUBLIC API
     # -------------------------
-    def build_similar_daily_series(self, project_id: str, top_k=3):
+    def build_similar_daily_series(self, project_id: str, top_k=10):
 
         project_id = str(project_id)
 
