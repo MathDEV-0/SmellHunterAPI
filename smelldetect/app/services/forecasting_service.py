@@ -72,6 +72,8 @@ class ForecastService:
 
             future_df, model_used = self._forecast(df_daily_sim)
 
+            prediction_summary = self._build_prediction_summary(future_df)
+
             future_df["source"] = "similarity_based"
 
             # PLOT SIMILARITY SALVO EM DISCO
@@ -88,6 +90,7 @@ class ForecastService:
 
             return {
                 "model_used": "Similarity+" + model_used,
+                "prediction_summary": prediction_summary,
                 "similar_projects": similarity_meta,
                 "forecast": future_df.to_dict(orient="records"),
                 "plot_path": filename,
@@ -100,6 +103,7 @@ class ForecastService:
         # NORMAL MODE
         # -------------------------
         future_df, model_used = self._forecast(df_daily)
+        prediction_summary = self._build_prediction_summary(future_df)
         trends = self._compute_full_trends(df, df_daily)
 
         forecast_col = "yhat"
@@ -120,6 +124,7 @@ class ForecastService:
 
         return {
             "model_used": model_used,
+            "prediction_summary": prediction_summary,
             "forecast": future_df.to_dict(orient="records"),
             "trends": trends,
             "plot_path": filename
@@ -556,3 +561,39 @@ class ForecastService:
         filename = self._get_log_path(f"forecast_project_{project_id}.png")
 
         return self._save_plot(fig, filename)
+    
+    def _build_prediction_summary(self, future_df):
+
+        future_df = future_df.copy()
+
+        future_df['ds'] = pd.to_datetime(future_df['ds'])
+
+        next_24h = future_df.head(1)
+        next_7d = future_df.head(7)
+        next_30d = future_df.head(30)
+
+        return {
+            "next_24h": {
+                "predicted_smells": float(next_24h['yhat'].sum()),
+                "lower_80": float(next_24h['lo-80'].sum()),
+                "upper_80": float(next_24h['hi-80'].sum()),
+                "lower_95": float(next_24h['lo-95'].sum()),
+                "upper_95": float(next_24h['hi-95'].sum())
+            },
+
+            "next_7_days": {
+                "predicted_smells": float(next_7d['yhat'].sum()),
+                "lower_80": float(next_7d['lo-80'].sum()),
+                "upper_80": float(next_7d['hi-80'].sum()),
+                "lower_95": float(next_7d['lo-95'].sum()),
+                "upper_95": float(next_7d['hi-95'].sum())
+            },
+
+            "next_30_days": {
+                "predicted_smells": float(next_30d['yhat'].sum()),
+                "lower_80": float(next_30d['lo-80'].sum()),
+                "upper_80": float(next_30d['hi-80'].sum()),
+                "lower_95": float(next_30d['lo-95'].sum()),
+                "upper_95": float(next_30d['hi-95'].sum())
+            }
+        }

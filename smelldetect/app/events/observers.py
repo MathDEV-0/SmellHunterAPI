@@ -467,6 +467,31 @@ class FeatureEngineeringService:
             if not last_mod.empty else None
         )
 
+        #Comparsion between time windows for trend analysis
+        recent_window = df[
+            (df["timestamp"] >= now - pd.Timedelta(hours=24)) &
+            (df["timestamp"] < now) &
+            (df["file_path"] == row["file_path"])
+        ]
+
+        
+        previous_window = df[
+            (df["timestamp"] >= now - pd.Timedelta(hours=48)) &
+            (df["timestamp"] < now - pd.Timedelta(hours=24)) &
+            (df["file_path"] == row["file_path"])
+        ]
+
+        recent_smells = recent_window["target"].sum()
+        previous_smells = previous_window["target"].sum()
+
+        # trend
+        if recent_smells > previous_smells:
+            smell_trend = "increasing"
+        elif recent_smells < previous_smells:
+            smell_trend = "decreasing"
+        else:
+            smell_trend = "stable"
+
         #Project/Team feats
         # ---------- PROJECT ----------
         project_data = df[df["project_id"] == row["project_id"]]
@@ -513,7 +538,7 @@ class FeatureEngineeringService:
             "user_smell_rate": user_smell_rate,
             "user_recent_activity": user_recent_activity,
             "smell_count_24h": smell_count_24h,
-            "smell_trend": "stable",
+            "smell_trend": smell_trend,
             "file_change_frequency": file_change_frequency,
             "file_smell_history": file_smell_history,
             "file_last_modified_delta": file_last_modified_delta,
